@@ -224,7 +224,7 @@ export async function renderRegistroHoras(app) {
   // Update all footer calculations
   function updateCalculations() {
     const totalHoras = calcTotalHorasMes();
-    const subtotalBruto = Math.round(totalHoras * valorHora * 100) / 100;
+    const subtotalBruto = calcSubtotalBruto();
     const totalDesc = calcTotalDescontos();
     const totalLiquido = Math.round((subtotalBruto - totalDesc) * 100) / 100;
 
@@ -241,7 +241,25 @@ export async function renderRegistroHoras(app) {
       elTotalLiq.className = 'calc-highlight ' + (totalLiquido >= 0 ? 'calc-positive' : 'calc-negative');
     }
 
+    // Update valorHora to the average for saveResumo
+    if (totalHoras > 0) valorHora = Math.round(subtotalBruto / totalHoras * 100) / 100;
+
     debouncedSaveResumo();
+  }
+
+  // Calculate subtotal bruto using per-row valor/hora
+  function calcSubtotalBruto() {
+    const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+    let subtotal = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const entrada = document.getElementById(`entrada-${d}`)?.value;
+      const saida = document.getElementById(`saida-${d}`)?.value;
+      const intervalo = document.getElementById(`intervalo-${d}`)?.value;
+      const vh = parseFloat(document.getElementById(`valorhora-${d}`)?.value) || 0;
+      const total = calcTotal(entrada, saida, intervalo);
+      subtotal += total * vh;
+    }
+    return Math.round(subtotal * 100) / 100;
   }
 
   // Save desconto to DB
@@ -349,6 +367,7 @@ export async function renderRegistroHoras(app) {
           <td class="col-time"><input type="text" id="saida-${d}" value="${saida}" data-day="${d}" class="input-time input-saida" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
           <td class="col-time"><input type="text" id="intervalo-${d}" value="${intervalo}" data-day="${d}" class="input-time input-intervalo" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
           <td class="col-total" id="total-${d}">${total > 0 ? decimalToHHMM(total) : '—'}</td>
+          <td class="col-valor-hora"><input type="number" id="valorhora-${d}" value="${valorHora}" data-day="${d}" class="input-valor-hora" step="0.01" inputmode="decimal" /></td>
           <td class="col-obs"><input type="text" id="obs-${d}" value="${obs}" data-day="${d}" class="input-obs" placeholder="Observação" /></td>
         </tr>
       `;
@@ -420,6 +439,7 @@ export async function renderRegistroHoras(app) {
                     <th class="col-time">Saída</th>
                     <th class="col-time">Intervalo</th>
                     <th class="col-total">Total</th>
+                    <th class="col-valor-hora">¥/h</th>
                     <th class="col-obs">Observação</th>
                   </tr>
                 </thead>
@@ -434,13 +454,6 @@ export async function renderRegistroHoras(app) {
                 <div class="calc-item">
                   <span class="calc-label">Total horas no mês</span>
                   <span class="calc-value" id="calc-total-horas">${decimalToHHMM(calcTotalHorasFromRecords())}</span>
-                </div>
-                <div class="calc-item">
-                  <span class="calc-label">Valor por hora (¥)</span>
-                  <div class="calc-input-wrap">
-                    <span class="currency-prefix">¥</span>
-                    <input type="number" id="calc-valor-hora" value="${valorHora}" step="0.01" class="calc-input" />
-                  </div>
                 </div>
                 <div class="calc-item calc-item-accent">
                   <span class="calc-label">Subtotal bruto</span>
@@ -523,10 +536,11 @@ export async function renderRegistroHoras(app) {
       saveRegistro(day);
     });
 
-    // Valor hora events
-    document.getElementById('calc-valor-hora').addEventListener('input', (e) => {
-      valorHora = parseFloat(e.target.value) || 0;
-      updateCalculations();
+    // Valor hora per-row events (delegation)
+    document.getElementById('timesheet-body').addEventListener('input', (e) => {
+      if (e.target.classList.contains('input-valor-hora')) {
+        updateCalculations();
+      }
     });
 
     // Descontos events

@@ -740,6 +740,42 @@ a:hover {
   min-width: 120px;
 }
 
+.col-valor-hora {
+  width: 80px;
+}
+
+.input-valor-hora {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input-valor-hora::-webkit-outer-spin-button,
+.input-valor-hora::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-valor-hora:hover {
+  border-color: var(--color-border);
+}
+
+.input-valor-hora:focus {
+  border-color: var(--color-border-focus);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.12);
+}
+
 /* Inputs inside table */
 .input-time {
   width: 100%;
