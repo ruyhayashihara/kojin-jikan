@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { NTA_CATEGORIAS } from '../ai-receipt.js';
 import { getInvoiceStatusIcon } from '../invoice-api.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -361,85 +362,64 @@ export async function renderDespesas(app) {
       .concat(NTA_CATEGORIAS.map(c => `<option value="${c.code}" ${filtroCategoria === c.code ? 'selected' : ''}>${c.code} | ${c.nome}</option>`));
 
     app.innerHTML = `
-      <div class="app-layout">
-        <nav class="navbar">
-          <div class="navbar-brand">
-            <span class="logo-icon-sm">鳥</span>
-            <span class="navbar-title">Keiro</span>
-          </div>
-          <div class="navbar-nav">
-            <a href="#/dashboard" class="nav-link">Dashboard</a>
-            <a href="#/registro-horas" class="nav-link">Registro de Horas</a>
-            <a href="#/recibos" class="nav-link">Recibos</a>
-            <a href="#/despesas" class="nav-link active">Despesas</a>
-            <a href="#/declaracao" class="nav-link">Declaração</a>
-            <a href="#/historico" class="nav-link">Histórico</a>
-            <a href="#/configuracoes" class="nav-link">Configurações</a>
-          </div>
-          <div class="navbar-user">
-            <span class="user-email">${user?.email || ''}</span>
-            <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-          </div>
-        </nav>
-
-        <main class="main-content">
-          <div class="page-container page-wide">
-            <div class="page-header-row">
-              <div class="page-header">
-                <h1>Despesas</h1>
-                <p>Gestão e classificação de despesas — 経費管理</p>
-              </div>
-              <div class="page-header-actions">
-                <div class="selector-group">
-                  <label for="sel-year-desp">Ano fiscal</label>
-                  <select id="sel-year-desp">${yearOpts.join('')}</select>
-                </div>
-                <button class="btn btn-primary" id="btn-nova-despesa">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Nova despesa manual
-                </button>
-              </div>
+      ${renderSidebar('despesas')}
+    <div class="app-content-wrapper">
+      <main class="main-content">
+        <div class="page-container page-wide">
+          <div class="page-header-row">
+            <div class="page-header">
+              <h1>Despesas</h1>
+              <p>Gestão e classificação de despesas — 経費管理</p>
             </div>
+            <div class="page-header-actions">
+              <div class="selector-group">
+                <label for="sel-year-desp">Ano fiscal</label>
+                <select id="sel-year-desp">${yearOpts.join('')}</select>
+              </div>
+              <button class="btn btn-primary" id="btn-nova-despesa">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                Nova despesa manual
+              </button>
+            </div>
+          </div>
 
-            <div class="filter-panel card">
-              <div class="filter-grid">
-                <div class="filter-item">
-                  <label for="f-mes">Mês</label>
-                  <select id="f-mes">${monthOpts.join('')}</select>
-                </div>
-                <div class="filter-item">
-                  <label for="f-cat">Categoria</label>
-                  <select id="f-cat">${catOpts.join('')}</select>
-                </div>
-                <div class="filter-item">
-                  <label for="f-status">Status</label>
-                  <select id="f-status">
-                    <option value="" ${filtroStatus === '' ? 'selected' : ''}>Todas</option>
-                    <option value="revisado" ${filtroStatus === 'revisado' ? 'selected' : ''}>Revisadas</option>
-                    <option value="pendente" ${filtroStatus === 'pendente' ? 'selected' : ''}>Pendentes</option>
-                  </select>
-                </div>
-                <div class="filter-item">
-                  <label>Valor (¥)</label>
-                  <div class="filter-range">
-                    <input type="number" id="f-val-min" placeholder="Mín" value="${filtroValorMin}" />
-                    <span class="filter-range-sep">—</span>
-                    <input type="number" id="f-val-max" placeholder="Máx" value="${filtroValorMax}" />
-                  </div>
+          <div class="filter-panel card">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label for="f-mes">Mês</label>
+                <select id="f-mes">${monthOpts.join('')}</select>
+              </div>
+              <div class="filter-item">
+                <label for="f-cat">Categoria</label>
+                <select id="f-cat">${catOpts.join('')}</select>
+              </div>
+              <div class="filter-item">
+                <label for="f-status">Status</label>
+                <select id="f-status">
+                  <option value="" ${filtroStatus === '' ? 'selected' : ''}>Todas</option>
+                  <option value="revisado" ${filtroStatus === 'revisado' ? 'selected' : ''}>Revisadas</option>
+                  <option value="pendente" ${filtroStatus === 'pendente' ? 'selected' : ''}>Pendentes</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label>Valor (¥)</label>
+                <div class="filter-range">
+                  <input type="number" id="f-val-min" placeholder="Mín" value="${filtroValorMin}" />
+                  <span class="filter-range-sep">—</span>
+                  <input type="number" id="f-val-max" placeholder="Máx" value="${filtroValorMax}" />
                 </div>
               </div>
             </div>
-
-            <div id="despesas-content"></div>
           </div>
-        </main>
-      </div>
+
+          <div id="despesas-content"></div>
+        </div>
+      </main>
+    </div>
     `;
 
     // Bind shell events
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await supabase.auth.signOut(); navigate('/login');
-    });
+    bindSidebarEvents();
 
     document.getElementById('sel-year-desp').addEventListener('change', (e) => {
       selectedYear = parseInt(e.target.value);

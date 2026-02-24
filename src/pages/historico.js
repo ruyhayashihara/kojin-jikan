@@ -1,162 +1,163 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const MESES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const LINE_COLORS = ['#6366f1', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export async function renderHistorico(app) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate('/login'); return; }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { navigate('/login'); return; }
 
-    const currentYear = new Date().getFullYear();
-    let yearFrom = currentYear - 2;
-    let yearTo = currentYear;
-    let selectedCompareMonth = 0; // 0-indexed
-    let allResumos = [];
-    let allDespesas = [];
+  const currentYear = new Date().getFullYear();
+  let yearFrom = currentYear - 2;
+  let yearTo = currentYear;
+  let selectedCompareMonth = 0; // 0-indexed
+  let allResumos = [];
+  let allDespesas = [];
 
-    async function loadAll() {
-        try {
-            const { data } = await supabase
-                .from('resumo_mensal')
-                .select('*')
-                .eq('usuario_id', user.id)
-                .gte('ano', yearFrom)
-                .lte('ano', yearTo)
-                .order('ano', { ascending: true })
-                .order('mes', { ascending: true });
-            allResumos = data || [];
-        } catch (e) { }
+  async function loadAll() {
+    try {
+      const { data } = await supabase
+        .from('resumo_mensal')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .gte('ano', yearFrom)
+        .lte('ano', yearTo)
+        .order('ano', { ascending: true })
+        .order('mes', { ascending: true });
+      allResumos = data || [];
+    } catch (e) { }
 
-        try {
-            const { data } = await supabase
-                .from('despesa')
-                .select('valor_dedutivel, ano_fiscal')
-                .eq('usuario_id', user.id)
-                .gte('ano_fiscal', yearFrom)
-                .lte('ano_fiscal', yearTo);
-            allDespesas = data || [];
-        } catch (e) { }
+    try {
+      const { data } = await supabase
+        .from('despesa')
+        .select('valor_dedutivel, ano_fiscal')
+        .eq('usuario_id', user.id)
+        .gte('ano_fiscal', yearFrom)
+        .lte('ano_fiscal', yearTo);
+      allDespesas = data || [];
+    } catch (e) { }
+  }
+
+  // Build year data
+  function buildYearlyData() {
+    const years = [];
+    for (let y = yearFrom; y <= yearTo; y++) {
+      const resumos = allResumos.filter(r => r.ano === y);
+      const monthData = [];
+      for (let m = 1; m <= 12; m++) {
+        const r = resumos.find(x => x.mes === m);
+        const bruto = r ? (r.total_horas || 0) * (r.valor_hora || 0) : 0;
+        const liq = bruto - (r?.total_descontos || 0);
+        monthData.push({
+          mes: m,
+          horas: r?.total_horas || 0,
+          valorHora: r?.valor_hora || 0,
+          bruto: Math.round(bruto),
+          descontos: Math.round(r?.total_descontos || 0),
+          liquido: Math.round(liq),
+        });
+      }
+      const despYearly = allDespesas.filter(d => d.ano_fiscal === y);
+      const totalDesp = despYearly.reduce((s, d) => s + (d.valor_dedutivel || 0), 0);
+      const totalHoras = monthData.reduce((s, m) => s + m.horas, 0);
+      const totalBruto = monthData.reduce((s, m) => s + m.bruto, 0);
+      const totalDescontos = monthData.reduce((s, m) => s + m.descontos, 0);
+      const totalLiquido = monthData.reduce((s, m) => s + m.liquido, 0);
+
+      years.push({
+        year: y,
+        months: monthData,
+        totalHoras: Math.round(totalHoras * 10) / 10,
+        totalBruto: Math.round(totalBruto),
+        totalDescontos: Math.round(totalDescontos),
+        totalDesp: Math.round(totalDesp),
+        totalLiquido: Math.round(totalLiquido),
+      });
+    }
+    return years;
+  }
+
+  // SVG Line Chart
+  function buildLineChart(yearlyData) {
+    const W = 800, H = 300, PL = 60, PR = 20, PT = 20, PB = 40;
+    const cw = W - PL - PR, ch = H - PT - PB;
+
+    // Gather all values
+    let allVals = [];
+    yearlyData.forEach(yd => yd.months.forEach(m => allVals.push(m.liquido)));
+    const maxVal = Math.max(...allVals, 1);
+    const minVal = Math.min(...allVals, 0);
+    const range = (maxVal - minVal) || 1;
+
+    const xStep = cw / 11;
+    const toX = i => PL + i * xStep;
+    const toY = v => PT + ch - ((v - minVal) / range) * ch;
+
+    // Grid lines
+    const gridCount = 5;
+    let gridLines = '';
+    for (let i = 0; i <= gridCount; i++) {
+      const val = minVal + (range / gridCount) * i;
+      const y = toY(val);
+      gridLines += `<line x1="${PL}" y1="${y}" x2="${W - PR}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>`;
+      const label = val >= 1000 ? `¥${Math.round(val / 1000)}k` : `¥${Math.round(val)}`;
+      gridLines += `<text x="${PL - 8}" y="${y + 4}" text-anchor="end" fill="#94a3b8" font-size="10" font-family="Inter,sans-serif">${label}</text>`;
     }
 
-    // Build year data
-    function buildYearlyData() {
-        const years = [];
-        for (let y = yearFrom; y <= yearTo; y++) {
-            const resumos = allResumos.filter(r => r.ano === y);
-            const monthData = [];
-            for (let m = 1; m <= 12; m++) {
-                const r = resumos.find(x => x.mes === m);
-                const bruto = r ? (r.total_horas || 0) * (r.valor_hora || 0) : 0;
-                const liq = bruto - (r?.total_descontos || 0);
-                monthData.push({
-                    mes: m,
-                    horas: r?.total_horas || 0,
-                    valorHora: r?.valor_hora || 0,
-                    bruto: Math.round(bruto),
-                    descontos: Math.round(r?.total_descontos || 0),
-                    liquido: Math.round(liq),
-                });
-            }
-            const despYearly = allDespesas.filter(d => d.ano_fiscal === y);
-            const totalDesp = despYearly.reduce((s, d) => s + (d.valor_dedutivel || 0), 0);
-            const totalHoras = monthData.reduce((s, m) => s + m.horas, 0);
-            const totalBruto = monthData.reduce((s, m) => s + m.bruto, 0);
-            const totalDescontos = monthData.reduce((s, m) => s + m.descontos, 0);
-            const totalLiquido = monthData.reduce((s, m) => s + m.liquido, 0);
+    // X labels
+    let xLabels = '';
+    MESES_CURTO.forEach((label, i) => {
+      xLabels += `<text x="${toX(i)}" y="${H - 10}" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="Inter,sans-serif">${label}</text>`;
+    });
 
-            years.push({
-                year: y,
-                months: monthData,
-                totalHoras: Math.round(totalHoras * 10) / 10,
-                totalBruto: Math.round(totalBruto),
-                totalDescontos: Math.round(totalDescontos),
-                totalDesp: Math.round(totalDesp),
-                totalLiquido: Math.round(totalLiquido),
-            });
+    // Lines per year
+    let lines = '';
+    yearlyData.forEach((yd, yi) => {
+      const color = LINE_COLORS[yi % LINE_COLORS.length];
+      const points = yd.months.map((m, i) => `${toX(i)},${toY(m.liquido)}`).join(' ');
+      lines += `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+      // Dots
+      yd.months.forEach((m, i) => {
+        if (m.liquido !== 0) {
+          lines += `<circle cx="${toX(i)}" cy="${toY(m.liquido)}" r="3.5" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
         }
-        return years;
+      });
+    });
+
+    // Legend
+    let legend = '';
+    yearlyData.forEach((yd, yi) => {
+      const color = LINE_COLORS[yi % LINE_COLORS.length];
+      const lx = PL + yi * 80;
+      legend += `<rect x="${lx}" y="${H - 2}" width="12" height="3" rx="1.5" fill="${color}"/>`;
+      legend += `<text x="${lx + 16}" y="${H + 2}" fill="#64748b" font-size="11" font-weight="600" font-family="Inter,sans-serif">${yd.year}</text>`;
+    });
+
+    // Zero line
+    let zeroLine = '';
+    if (minVal < 0) {
+      const zy = toY(0);
+      zeroLine = `<line x1="${PL}" y1="${zy}" x2="${W - PR}" y2="${zy}" stroke="#94a3b8" stroke-width="1"/>`;
     }
 
-    // SVG Line Chart
-    function buildLineChart(yearlyData) {
-        const W = 800, H = 300, PL = 60, PR = 20, PT = 20, PB = 40;
-        const cw = W - PL - PR, ch = H - PT - PB;
-
-        // Gather all values
-        let allVals = [];
-        yearlyData.forEach(yd => yd.months.forEach(m => allVals.push(m.liquido)));
-        const maxVal = Math.max(...allVals, 1);
-        const minVal = Math.min(...allVals, 0);
-        const range = (maxVal - minVal) || 1;
-
-        const xStep = cw / 11;
-        const toX = i => PL + i * xStep;
-        const toY = v => PT + ch - ((v - minVal) / range) * ch;
-
-        // Grid lines
-        const gridCount = 5;
-        let gridLines = '';
-        for (let i = 0; i <= gridCount; i++) {
-            const val = minVal + (range / gridCount) * i;
-            const y = toY(val);
-            gridLines += `<line x1="${PL}" y1="${y}" x2="${W - PR}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>`;
-            const label = val >= 1000 ? `¥${Math.round(val / 1000)}k` : `¥${Math.round(val)}`;
-            gridLines += `<text x="${PL - 8}" y="${y + 4}" text-anchor="end" fill="#94a3b8" font-size="10" font-family="Inter,sans-serif">${label}</text>`;
-        }
-
-        // X labels
-        let xLabels = '';
-        MESES_CURTO.forEach((label, i) => {
-            xLabels += `<text x="${toX(i)}" y="${H - 10}" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="Inter,sans-serif">${label}</text>`;
-        });
-
-        // Lines per year
-        let lines = '';
-        yearlyData.forEach((yd, yi) => {
-            const color = LINE_COLORS[yi % LINE_COLORS.length];
-            const points = yd.months.map((m, i) => `${toX(i)},${toY(m.liquido)}`).join(' ');
-            lines += `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
-            // Dots
-            yd.months.forEach((m, i) => {
-                if (m.liquido !== 0) {
-                    lines += `<circle cx="${toX(i)}" cy="${toY(m.liquido)}" r="3.5" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
-                }
-            });
-        });
-
-        // Legend
-        let legend = '';
-        yearlyData.forEach((yd, yi) => {
-            const color = LINE_COLORS[yi % LINE_COLORS.length];
-            const lx = PL + yi * 80;
-            legend += `<rect x="${lx}" y="${H - 2}" width="12" height="3" rx="1.5" fill="${color}"/>`;
-            legend += `<text x="${lx + 16}" y="${H + 2}" fill="#64748b" font-size="11" font-weight="600" font-family="Inter,sans-serif">${yd.year}</text>`;
-        });
-
-        // Zero line
-        let zeroLine = '';
-        if (minVal < 0) {
-            const zy = toY(0);
-            zeroLine = `<line x1="${PL}" y1="${zy}" x2="${W - PR}" y2="${zy}" stroke="#94a3b8" stroke-width="1"/>`;
-        }
-
-        return `<svg viewBox="0 0 ${W} ${H + 10}" class="line-chart-svg" xmlns="http://www.w3.org/2000/svg">
+    return `<svg viewBox="0 0 ${W} ${H + 10}" class="line-chart-svg" xmlns="http://www.w3.org/2000/svg">
       ${gridLines}${zeroLine}${xLabels}${lines}${legend}
     </svg>`;
-    }
+  }
 
-    // Monthly comparison bar chart
-    function buildMonthlyBarChart(yearlyData) {
-        const m = selectedCompareMonth;
-        const data = yearlyData.map(yd => ({ year: yd.year, value: yd.months[m].liquido }));
-        const maxVal = Math.max(...data.map(d => Math.abs(d.value)), 1);
+  // Monthly comparison bar chart
+  function buildMonthlyBarChart(yearlyData) {
+    const m = selectedCompareMonth;
+    const data = yearlyData.map(yd => ({ year: yd.year, value: yd.months[m].liquido }));
+    const maxVal = Math.max(...data.map(d => Math.abs(d.value)), 1);
 
-        return data.map(d => {
-            const pct = Math.abs(d.value) / maxVal * 100;
-            const isNeg = d.value < 0;
-            return `
+    return data.map(d => {
+      const pct = Math.abs(d.value) / maxVal * 100;
+      const isNeg = d.value < 0;
+      return `
         <div class="compare-bar-row">
           <span class="compare-bar-year">${d.year}</span>
           <div class="compare-bar-track">
@@ -165,103 +166,84 @@ export async function renderHistorico(app) {
           <span class="compare-bar-value ${isNeg ? 'compare-val-neg' : ''}">¥${d.value.toLocaleString('ja-JP')}</span>
         </div>
       `;
-        }).join('');
-    }
+    }).join('');
+  }
 
-    // Highlights
-    function calcHighlights(yearlyData) {
-        let bestMonth = { val: -Infinity, label: '' };
-        let worstMonth = { val: Infinity, label: '' };
-        let bestYear = { val: -Infinity, year: 0 };
-        let totalHoras = 0, totalMonths = 0;
+  // Highlights
+  function calcHighlights(yearlyData) {
+    let bestMonth = { val: -Infinity, label: '' };
+    let worstMonth = { val: Infinity, label: '' };
+    let bestYear = { val: -Infinity, year: 0 };
+    let totalHoras = 0, totalMonths = 0;
 
-        yearlyData.forEach(yd => {
-            if (yd.totalBruto > bestYear.val) bestYear = { val: yd.totalBruto, year: yd.year };
-            yd.months.forEach(m => {
-                if (m.horas > 0 || m.liquido !== 0) {
-                    totalHoras += m.horas;
-                    totalMonths++;
-                }
-                if (m.liquido > bestMonth.val) bestMonth = { val: m.liquido, label: `${MESES_CURTO[m.mes - 1]} ${yd.year}` };
-                if (m.liquido < worstMonth.val && (m.horas > 0 || m.liquido !== 0)) worstMonth = { val: m.liquido, label: `${MESES_CURTO[m.mes - 1]} ${yd.year}` };
-            });
-        });
-
-        const avgHoras = totalMonths > 0 ? Math.round((totalHoras / totalMonths) * 10) / 10 : 0;
-        return { bestMonth, worstMonth, bestYear, avgHoras };
-    }
-
-    // Export CSV
-    function exportCSV(yearlyData) {
-        let csv = 'Ano,Mês,Horas,Valor/Hora (¥),Bruto (¥),Descontos (¥),Líquido (¥)\n';
-        yearlyData.forEach(yd => {
-            yd.months.forEach(m => {
-                csv += `${yd.year},${MESES_NOME[m.mes - 1]},${m.horas},${m.valorHora},${m.bruto},${m.descontos},${m.liquido}\n`;
-            });
-        });
-        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `keiro_historico_${yearFrom}-${yearTo}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('📊 Histórico exportado com sucesso!');
-    }
-
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = 'toast toast-success';
-        t.textContent = msg;
-        document.body.appendChild(t);
-        setTimeout(() => t.classList.add('toast-show'), 10);
-        setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
-    }
-
-    async function renderPage() {
-        await loadAll();
-        const yearlyData = buildYearlyData();
-        const hl = calcHighlights(yearlyData);
-
-        const yearOpts = [];
-        for (let y = currentYear - 10; y <= currentYear; y++) {
-            yearOpts.push(y);
+    yearlyData.forEach(yd => {
+      if (yd.totalBruto > bestYear.val) bestYear = { val: yd.totalBruto, year: yd.year };
+      yd.months.forEach(m => {
+        if (m.horas > 0 || m.liquido !== 0) {
+          totalHoras += m.horas;
+          totalMonths++;
         }
+        if (m.liquido > bestMonth.val) bestMonth = { val: m.liquido, label: `${MESES_CURTO[m.mes - 1]} ${yd.year}` };
+        if (m.liquido < worstMonth.val && (m.horas > 0 || m.liquido !== 0)) worstMonth = { val: m.liquido, label: `${MESES_CURTO[m.mes - 1]} ${yd.year}` };
+      });
+    });
 
-        const monthOpts = MESES_NOME.map((n, i) =>
-            `<option value="${i}" ${i === selectedCompareMonth ? 'selected' : ''}>${n}</option>`
-        ).join('');
+    const avgHoras = totalMonths > 0 ? Math.round((totalHoras / totalMonths) * 10) / 10 : 0;
+    return { bestMonth, worstMonth, bestYear, avgHoras };
+  }
 
-        // Annual totals
-        const grandHoras = yearlyData.reduce((s, y) => s + y.totalHoras, 0);
-        const grandBruto = yearlyData.reduce((s, y) => s + y.totalBruto, 0);
-        const grandDesp = yearlyData.reduce((s, y) => s + y.totalDesp, 0);
-        const grandDescontos = yearlyData.reduce((s, y) => s + y.totalDescontos, 0);
-        const grandLiquido = yearlyData.reduce((s, y) => s + y.totalLiquido, 0);
-        const numYears = yearlyData.length || 1;
+  // Export CSV
+  function exportCSV(yearlyData) {
+    let csv = 'Ano,Mês,Horas,Valor/Hora (¥),Bruto (¥),Descontos (¥),Líquido (¥)\n';
+    yearlyData.forEach(yd => {
+      yd.months.forEach(m => {
+        csv += `${yd.year},${MESES_NOME[m.mes - 1]},${m.horas},${m.valorHora},${m.bruto},${m.descontos},${m.liquido}\n`;
+      });
+    });
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `keiro_historico_${yearFrom}-${yearTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('📊 Histórico exportado com sucesso!');
+  }
 
-        app.innerHTML = `
-      <div class="app-layout">
-        <nav class="navbar">
-          <div class="navbar-brand">
-            <span class="logo-icon-sm">鳥</span>
-            <span class="navbar-title">Keiro</span>
-          </div>
-          <div class="navbar-nav">
-            <a href="#/dashboard" class="nav-link">Dashboard</a>
-            <a href="#/registro-horas" class="nav-link">Registro de Horas</a>
-            <a href="#/recibos" class="nav-link">Recibos</a>
-            <a href="#/despesas" class="nav-link">Despesas</a>
-            <a href="#/declaracao" class="nav-link">Declaração</a>
-            <a href="#/historico" class="nav-link active">Histórico</a>
-            <a href="#/configuracoes" class="nav-link">Configurações</a>
-          </div>
-          <div class="navbar-user">
-            <span class="user-email">${user?.email || ''}</span>
-            <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-          </div>
-        </nav>
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast toast-success';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('toast-show'), 10);
+    setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3000);
+  }
 
+  async function renderPage() {
+    await loadAll();
+    const yearlyData = buildYearlyData();
+    const hl = calcHighlights(yearlyData);
+
+    const yearOpts = [];
+    for (let y = currentYear - 10; y <= currentYear; y++) {
+      yearOpts.push(y);
+    }
+
+    const monthOpts = MESES_NOME.map((n, i) =>
+      `<option value="${i}" ${i === selectedCompareMonth ? 'selected' : ''}>${n}</option>`
+    ).join('');
+
+    // Annual totals
+    const grandHoras = yearlyData.reduce((s, y) => s + y.totalHoras, 0);
+    const grandBruto = yearlyData.reduce((s, y) => s + y.totalBruto, 0);
+    const grandDesp = yearlyData.reduce((s, y) => s + y.totalDesp, 0);
+    const grandDescontos = yearlyData.reduce((s, y) => s + y.totalDescontos, 0);
+    const grandLiquido = yearlyData.reduce((s, y) => s + y.totalLiquido, 0);
+    const numYears = yearlyData.length || 1;
+
+    app.innerHTML = `
+      ${renderSidebar('historico')}
+      <div class="app-content-wrapper">
         <main class="main-content">
           <div class="page-container page-wide">
             <div class="page-header">
@@ -404,29 +386,27 @@ export async function renderHistorico(app) {
       </div>
     `;
 
-        // Events
-        document.getElementById('logout-btn')?.addEventListener('click', async () => {
-            await supabase.auth.signOut(); navigate('/login');
-        });
+    // Events
+    bindSidebarEvents();
 
-        document.getElementById('hist-from')?.addEventListener('change', (e) => {
-            yearFrom = parseInt(e.target.value);
-            if (yearFrom > yearTo) yearTo = yearFrom;
-            renderPage();
-        });
-        document.getElementById('hist-to')?.addEventListener('change', (e) => {
-            yearTo = parseInt(e.target.value);
-            if (yearTo < yearFrom) yearFrom = yearTo;
-            renderPage();
-        });
+    document.getElementById('hist-from')?.addEventListener('change', (e) => {
+      yearFrom = parseInt(e.target.value);
+      if (yearFrom > yearTo) yearTo = yearFrom;
+      renderPage();
+    });
+    document.getElementById('hist-to')?.addEventListener('change', (e) => {
+      yearTo = parseInt(e.target.value);
+      if (yearTo < yearFrom) yearFrom = yearTo;
+      renderPage();
+    });
 
-        document.getElementById('hist-compare-month')?.addEventListener('change', (e) => {
-            selectedCompareMonth = parseInt(e.target.value);
-            document.getElementById('compare-bars').innerHTML = buildMonthlyBarChart(yearlyData);
-        });
+    document.getElementById('hist-compare-month')?.addEventListener('change', (e) => {
+      selectedCompareMonth = parseInt(e.target.value);
+      document.getElementById('compare-bars').innerHTML = buildMonthlyBarChart(yearlyData);
+    });
 
-        document.getElementById('btn-export-hist')?.addEventListener('click', () => exportCSV(yearlyData));
-    }
+    document.getElementById('btn-export-hist')?.addEventListener('click', () => exportCSV(yearlyData));
+  }
 
-    await renderPage();
+  await renderPage();
 }

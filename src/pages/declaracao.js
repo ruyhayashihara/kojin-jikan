@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { NTA_CATEGORIAS } from '../ai-receipt.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -204,93 +205,74 @@ export async function renderDeclaracao(app) {
     const checkPct = Math.round((checkedCount / CHECKLIST_ITEMS.length) * 100);
 
     app.innerHTML = `
-      <div class="app-layout">
-        <nav class="navbar">
-          <div class="navbar-brand">
-            <span class="logo-icon-sm">鳥</span>
-            <span class="navbar-title">Keiro</span>
-          </div>
-          <div class="navbar-nav">
-            <a href="#/dashboard" class="nav-link">Dashboard</a>
-            <a href="#/registro-horas" class="nav-link">Registro de Horas</a>
-            <a href="#/recibos" class="nav-link">Recibos</a>
-            <a href="#/despesas" class="nav-link">Despesas</a>
-            <a href="#/declaracao" class="nav-link active">Declaração</a>
-            <a href="#/historico" class="nav-link">Histórico</a>
-            <a href="#/configuracoes" class="nav-link">Configurações</a>
-          </div>
-          <div class="navbar-user">
-            <span class="user-email">${user?.email || ''}</span>
-            <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-          </div>
-        </nav>
+      ${renderSidebar('declaracao')}
+    <div class="app-content-wrapper">
+      <main class="main-content">
+        <div class="page-container page-wide">
 
-        <main class="main-content">
-          <div class="page-container page-wide">
-
-            <div class="page-header-row">
-              <div class="page-header">
-                <h1>Declaração Fiscal — 確定申告</h1>
-                <p>Preparação da declaração de imposto de renda</p>
+          <div class="page-header-row">
+            <div class="page-header">
+              <h1>Declaração Fiscal — 確定申告</h1>
+              <p>Preparação da declaração de imposto de renda</p>
+            </div>
+            <div class="page-header-actions">
+              <div class="selector-group">
+                <label for="sel-year-decl">Ano fiscal</label>
+                <select id="sel-year-decl">${yearOpts.join('')}</select>
               </div>
-              <div class="page-header-actions">
-                <div class="selector-group">
-                  <label for="sel-year-decl">Ano fiscal</label>
-                  <select id="sel-year-decl">${yearOpts.join('')}</select>
-                </div>
-                <span class="regime-badge ${regimeClass}">${regimeLabel}</span>
+              <span class="regime-badge ${regimeClass}">${regimeLabel}</span>
+            </div>
+          </div>
+
+          <!-- Seção 1: Resumo de Receitas -->
+          <div class="card decl-section">
+            <h2 class="decl-section-title">
+              <span class="decl-num">1</span>
+              Resumo de Receitas
+            </h2>
+            <div class="decl-stats-grid">
+              <div class="decl-stat">
+                <span class="decl-stat-label">Total de horas trabalhadas</span>
+                <span class="decl-stat-value">${rec.totalHoras}h</span>
+              </div>
+              <div class="decl-stat">
+                <span class="decl-stat-label">Valor por hora médio</span>
+                <span class="decl-stat-value">¥${rec.avgValorHora.toLocaleString('ja-JP')}</span>
+              </div>
+              <div class="decl-stat">
+                <span class="decl-stat-label">Receita bruta anual</span>
+                <span class="decl-stat-value decl-val-primary">¥${rec.receitaBruta.toLocaleString('ja-JP')}</span>
+              </div>
+              <div class="decl-stat">
+                <span class="decl-stat-label">Total de descontos anuais</span>
+                <span class="decl-stat-value decl-val-red">−¥${rec.totalDescontos.toLocaleString('ja-JP')}</span>
+              </div>
+              <div class="decl-stat decl-stat-highlight">
+                <span class="decl-stat-label">Receita líquida do trabalho</span>
+                <span class="decl-stat-value decl-val-bold">¥${rec.receitaLiquida.toLocaleString('ja-JP')}</span>
               </div>
             </div>
+          </div>
 
-            <!-- Seção 1: Resumo de Receitas -->
-            <div class="card decl-section">
-              <h2 class="decl-section-title">
-                <span class="decl-num">1</span>
-                Resumo de Receitas
-              </h2>
-              <div class="decl-stats-grid">
-                <div class="decl-stat">
-                  <span class="decl-stat-label">Total de horas trabalhadas</span>
-                  <span class="decl-stat-value">${rec.totalHoras}h</span>
-                </div>
-                <div class="decl-stat">
-                  <span class="decl-stat-label">Valor por hora médio</span>
-                  <span class="decl-stat-value">¥${rec.avgValorHora.toLocaleString('ja-JP')}</span>
-                </div>
-                <div class="decl-stat">
-                  <span class="decl-stat-label">Receita bruta anual</span>
-                  <span class="decl-stat-value decl-val-primary">¥${rec.receitaBruta.toLocaleString('ja-JP')}</span>
-                </div>
-                <div class="decl-stat">
-                  <span class="decl-stat-label">Total de descontos anuais</span>
-                  <span class="decl-stat-value decl-val-red">−¥${rec.totalDescontos.toLocaleString('ja-JP')}</span>
-                </div>
-                <div class="decl-stat decl-stat-highlight">
-                  <span class="decl-stat-label">Receita líquida do trabalho</span>
-                  <span class="decl-stat-value decl-val-bold">¥${rec.receitaLiquida.toLocaleString('ja-JP')}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Seção 2: Despesas Dedutíveis -->
-            <div class="card decl-section">
-              <h2 class="decl-section-title">
-                <span class="decl-num">2</span>
-                Despesas Dedutíveis por Categoria
-              </h2>
-              <div class="decl-cat-table-wrap">
-                <table class="decl-cat-table">
-                  <thead>
-                    <tr>
-                      <th>Código</th>
-                      <th>Categoria</th>
-                      <th class="col-num">Recibos</th>
-                      <th class="col-num">Total Calculado (¥)</th>
-                      <th class="col-num">Valor Ajustado (¥)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${cats.map(c => `
+          <!-- Seção 2: Despesas Dedutíveis -->
+          <div class="card decl-section">
+            <h2 class="decl-section-title">
+              <span class="decl-num">2</span>
+              Despesas Dedutíveis por Categoria
+            </h2>
+            <div class="decl-cat-table-wrap">
+              <table class="decl-cat-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Categoria</th>
+                    <th class="col-num">Recibos</th>
+                    <th class="col-num">Total Calculado (¥)</th>
+                    <th class="col-num">Valor Ajustado (¥)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cats.map(c => `
                       <tr class="decl-cat-row ${c.count > 0 ? '' : 'decl-cat-empty'}">
                         <td><span class="cat-badge">${c.code}</span></td>
                         <td>
@@ -306,46 +288,46 @@ export async function renderDeclaracao(app) {
                         </td>
                       </tr>
                     `).join('')}
-                  </tbody>
-                  <tfoot>
-                    <tr class="decl-cat-total-row">
-                      <td colspan="3"><strong>Total Geral de Despesas Dedutíveis</strong></td>
-                      <td class="col-num"><strong>¥${cats.reduce((s, c) => s + c.total, 0).toLocaleString('ja-JP')}</strong></td>
-                      <td class="col-num"><strong id="total-dedutivel">¥${totalDedutivel.toLocaleString('ja-JP')}</strong></td>
-                    </tr>
-                  </tfoot>
-                </table>
+                </tbody>
+                <tfoot>
+                  <tr class="decl-cat-total-row">
+                    <td colspan="3"><strong>Total Geral de Despesas Dedutíveis</strong></td>
+                    <td class="col-num"><strong>¥${cats.reduce((s, c) => s + c.total, 0).toLocaleString('ja-JP')}</strong></td>
+                    <td class="col-num"><strong id="total-dedutivel">¥${totalDedutivel.toLocaleString('ja-JP')}</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Seção 3: Resultado Fiscal -->
+          <div class="card decl-section">
+            <h2 class="decl-section-title">
+              <span class="decl-num">3</span>
+              Resultado Fiscal Estimado
+            </h2>
+            <div class="fiscal-result">
+              <div class="fiscal-line">
+                <span>Receita líquida do trabalho</span>
+                <span class="fiscal-amount">¥${rec.receitaLiquida.toLocaleString('ja-JP')}</span>
+              </div>
+              <div class="fiscal-line fiscal-line-minus">
+                <span>Total de despesas dedutíveis</span>
+                <span class="fiscal-amount fiscal-red">−¥<span id="fiscal-desp">${totalDedutivel.toLocaleString('ja-JP')}</span></span>
+              </div>
+              <div class="fiscal-line fiscal-line-result ${lucro >= 0 ? 'fiscal-result-positive' : 'fiscal-result-negative'}">
+                <span>= Lucro tributável estimado</span>
+                <span class="fiscal-amount fiscal-result-value" id="fiscal-lucro">¥${lucro.toLocaleString('ja-JP')}</span>
               </div>
             </div>
-
-            <!-- Seção 3: Resultado Fiscal -->
-            <div class="card decl-section">
-              <h2 class="decl-section-title">
-                <span class="decl-num">3</span>
-                Resultado Fiscal Estimado
-              </h2>
-              <div class="fiscal-result">
-                <div class="fiscal-line">
-                  <span>Receita líquida do trabalho</span>
-                  <span class="fiscal-amount">¥${rec.receitaLiquida.toLocaleString('ja-JP')}</span>
-                </div>
-                <div class="fiscal-line fiscal-line-minus">
-                  <span>Total de despesas dedutíveis</span>
-                  <span class="fiscal-amount fiscal-red">−¥<span id="fiscal-desp">${totalDedutivel.toLocaleString('ja-JP')}</span></span>
-                </div>
-                <div class="fiscal-line fiscal-line-result ${lucro >= 0 ? 'fiscal-result-positive' : 'fiscal-result-negative'}">
-                  <span>= Lucro tributável estimado</span>
-                  <span class="fiscal-amount fiscal-result-value" id="fiscal-lucro">¥${lucro.toLocaleString('ja-JP')}</span>
-                </div>
-              </div>
-              <div class="fiscal-note">
-                <span class="fiscal-note-icon">⚠️</span>
-                <span>Este é um cálculo estimado. Consulte um contador (<strong>税理士</strong>) para a declaração oficial.</span>
-              </div>
+            <div class="fiscal-note">
+              <span class="fiscal-note-icon">⚠️</span>
+              <span>Este é um cálculo estimado. Consulte um contador (<strong>税理士</strong>) para a declaração oficial.</span>
             </div>
+          </div>
 
-            <!-- Seção: Status Invoice -->
-            ${(() => {
+          <!-- Seção: Status Invoice -->
+          ${(() => {
         const withInvoice = despesas.filter(d => d.numero_invoice);
         const withoutInvoice = despesas.filter(d => !d.numero_invoice);
         const totalWithInvoice = withInvoice.reduce((s, d) => s + (d.valor_dedutivel || d.valor || 0), 0);
@@ -383,20 +365,20 @@ export async function renderDeclaracao(app) {
             </div>`;
       })()}
 
-            <!-- Seção 4: Checklist -->
-            <div class="card decl-section">
-              <h2 class="decl-section-title">
-                <span class="decl-num">4</span>
-                Checklist de Documentos
-              </h2>
-              <div class="checklist-progress">
-                <div class="review-progress-bar">
-                  <div class="review-progress-fill" style="width:${checkPct}%"></div>
-                </div>
-                <span class="review-progress-label">${checkedCount}/${CHECKLIST_ITEMS.length} reunidos (${checkPct}%)</span>
+          <!-- Seção 4: Checklist -->
+          <div class="card decl-section">
+            <h2 class="decl-section-title">
+              <span class="decl-num">4</span>
+              Checklist de Documentos
+            </h2>
+            <div class="checklist-progress">
+              <div class="review-progress-bar">
+                <div class="review-progress-fill" style="width:${checkPct}%"></div>
               </div>
-              <div class="checklist-list">
-                ${CHECKLIST_ITEMS.map(it => `
+              <span class="review-progress-label">${checkedCount}/${CHECKLIST_ITEMS.length} reunidos (${checkPct}%)</span>
+            </div>
+            <div class="checklist-list">
+              ${CHECKLIST_ITEMS.map(it => `
                   <label class="checklist-item ${checklist[it.key] ? 'checklist-item-done' : ''}">
                     <input type="checkbox" class="checklist-check" data-key="${it.key}" ${checklist[it.key] ? 'checked' : ''} />
                     <span class="checklist-text">
@@ -405,34 +387,32 @@ export async function renderDeclaracao(app) {
                     </span>
                   </label>
                 `).join('')}
-              </div>
             </div>
-
-            <!-- Export Buttons -->
-            <div class="export-bar">
-              <button class="btn btn-primary btn-lg" id="btn-export-pdf">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Exportar PDF
-              </button>
-              <button class="btn btn-outline btn-lg" id="btn-export-csv">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-                Exportar CSV
-              </button>
-              <button class="btn btn-outline btn-lg" id="btn-copy-summary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Copiar Resumo
-              </button>
-            </div>
-
           </div>
-        </main>
-      </div>
+
+          <!-- Export Buttons -->
+          <div class="export-bar">
+            <button class="btn btn-primary btn-lg" id="btn-export-pdf">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+              Exportar PDF
+            </button>
+            <button class="btn btn-outline btn-lg" id="btn-export-csv">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+              Exportar CSV
+            </button>
+            <button class="btn btn-outline btn-lg" id="btn-copy-summary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+              Copiar Resumo
+            </button>
+          </div>
+
+        </div>
+      </main>
+    </div>
     `;
 
     // --- Events ---
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await supabase.auth.signOut(); navigate('/login');
-    });
+    bindSidebarEvents();
 
     document.getElementById('sel-year-decl')?.addEventListener('change', (e) => {
       selectedYear = parseInt(e.target.value);
@@ -449,12 +429,12 @@ export async function renderDeclaracao(app) {
           return s + (categoryOverrides[c.code] !== undefined ? categoryOverrides[c.code] : (cats.find(x => x.code === c.code)?.total || 0));
         }, 0);
         const newLucro = rec.receitaLiquida - newTotal;
-        document.getElementById('total-dedutivel').textContent = `¥${newTotal.toLocaleString('ja-JP')}`;
+        document.getElementById('total-dedutivel').textContent = `¥${newTotal.toLocaleString('ja-JP')} `;
         document.getElementById('fiscal-desp').textContent = newTotal.toLocaleString('ja-JP');
         const lucroEl = document.getElementById('fiscal-lucro');
-        lucroEl.textContent = `¥${newLucro.toLocaleString('ja-JP')}`;
+        lucroEl.textContent = `¥${newLucro.toLocaleString('ja-JP')} `;
         const resultLine = lucroEl.closest('.fiscal-line');
-        resultLine.className = `fiscal-line fiscal-line-result ${newLucro >= 0 ? 'fiscal-result-positive' : 'fiscal-result-negative'}`;
+        resultLine.className = `fiscal - line fiscal - line - result ${newLucro >= 0 ? 'fiscal-result-positive' : 'fiscal-result-negative'} `;
       });
     });
 
@@ -463,7 +443,7 @@ export async function renderDeclaracao(app) {
       cb.addEventListener('change', () => {
         const key = cb.dataset.key;
         checklist[key] = cb.checked;
-        localStorage.setItem(`keiro_checklist_${selectedYear}`, JSON.stringify(checklist));
+        localStorage.setItem(`keiro_checklist_${selectedYear} `, JSON.stringify(checklist));
         const item = cb.closest('.checklist-item');
         item.classList.toggle('checklist-item-done', cb.checked);
         // Update progress
@@ -471,7 +451,7 @@ export async function renderDeclaracao(app) {
         const pct = Math.round((count / CHECKLIST_ITEMS.length) * 100);
         const fill = document.querySelector('.checklist-progress .review-progress-fill');
         const label = document.querySelector('.checklist-progress .review-progress-label');
-        if (fill) fill.style.width = `${pct}%`;
+        if (fill) fill.style.width = `${pct}% `;
         if (label) label.textContent = `${count}/${CHECKLIST_ITEMS.length} reunidos (${pct}%)`;
       });
     });

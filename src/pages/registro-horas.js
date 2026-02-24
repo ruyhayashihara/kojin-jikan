@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -9,10 +10,6 @@ function getDaysInMonth(year, month) {
 }
 
 function formatDate(year, month, day) {
-  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-}
-
-function formatDateShort(month, day) {
   return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
 }
 
@@ -228,7 +225,7 @@ export async function renderRegistroHoras(app) {
   // Update all footer calculations
   function updateCalculations() {
     const totalHoras = calcTotalHorasMes();
-    const subtotalBruto = calcSubtotalBruto();
+    const subtotalBruto = Math.round(totalHoras * valorHora * 100) / 100;
     const totalDesc = calcTotalDescontos();
     const totalLiquido = Math.round((subtotalBruto - totalDesc) * 100) / 100;
 
@@ -245,25 +242,7 @@ export async function renderRegistroHoras(app) {
       elTotalLiq.className = 'calc-highlight ' + (totalLiquido >= 0 ? 'calc-positive' : 'calc-negative');
     }
 
-    // Update valorHora to the average for saveResumo
-    if (totalHoras > 0) valorHora = Math.round(subtotalBruto / totalHoras * 100) / 100;
-
     debouncedSaveResumo();
-  }
-
-  // Calculate subtotal bruto using per-row valor/hora
-  function calcSubtotalBruto() {
-    const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
-    let subtotal = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const entrada = document.getElementById(`entrada-${d}`)?.value;
-      const saida = document.getElementById(`saida-${d}`)?.value;
-      const intervalo = document.getElementById(`intervalo-${d}`)?.value;
-      const vh = parseFloat(document.getElementById(`valorhora-${d}`)?.value) || 0;
-      const total = calcTotal(entrada, saida, intervalo);
-      subtotal += total * vh;
-    }
-    return Math.round(subtotal * 100) / 100;
   }
 
   // Save desconto to DB
@@ -365,13 +344,12 @@ export async function renderRegistroHoras(app) {
 
       rows += `
         <tr id="row-${d}" class="${rowClass}">
-          <td class="col-date"><span class="date-full">${formatDate(selectedYear, selectedMonth, d)}</span><span class="date-short">${formatDateShort(selectedMonth, d)}</span></td>
+          <td class="col-date">${formatDate(selectedYear, selectedMonth, d)}</td>
           <td class="col-dow">${DIAS_SEMANA[dow]}</td>
           <td class="col-time"><input type="text" id="entrada-${d}" value="${entrada}" data-day="${d}" class="input-time input-entrada" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
           <td class="col-time"><input type="text" id="saida-${d}" value="${saida}" data-day="${d}" class="input-time input-saida" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
           <td class="col-time"><input type="text" id="intervalo-${d}" value="${intervalo}" data-day="${d}" class="input-time input-intervalo" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
           <td class="col-total" id="total-${d}">${total > 0 ? decimalToHHMM(total) : '—'}</td>
-          <td class="col-valor-hora"><input type="number" id="valorhora-${d}" value="${valorHora}" data-day="${d}" class="input-valor-hora" step="0.01" inputmode="decimal" /></td>
           <td class="col-obs"><input type="text" id="obs-${d}" value="${obs}" data-day="${d}" class="input-obs" placeholder="Observação" /></td>
         </tr>
       `;
@@ -393,27 +371,8 @@ export async function renderRegistroHoras(app) {
     );
 
     app.innerHTML = `
-      <div class="app-layout">
-        <nav class="navbar">
-          <div class="navbar-brand">
-            <span class="logo-icon-sm">鳥</span>
-            <span class="navbar-title">Keiro</span>
-          </div>
-          <div class="navbar-nav">
-            <a href="#/dashboard" class="nav-link">Dashboard</a>
-            <a href="#/registro-horas" class="nav-link active">Registro de Horas</a>
-            <a href="#/recibos" class="nav-link">Recibos</a>
-            <a href="#/despesas" class="nav-link">Despesas</a>
-            <a href="#/declaracao" class="nav-link">Declaração</a>
-            <a href="#/historico" class="nav-link">Histórico</a>
-            <a href="#/configuracoes" class="nav-link">Configurações</a>
-          </div>
-          <div class="navbar-user">
-            <span class="user-email">${user?.email || ''}</span>
-            <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-          </div>
-        </nav>
-
+      ${renderSidebar('registro-horas')}
+      <div class="app-content-wrapper">
         <main class="main-content">
           <div class="page-container page-wide">
             <div class="page-header">
@@ -443,7 +402,6 @@ export async function renderRegistroHoras(app) {
                     <th class="col-time">Saída</th>
                     <th class="col-time">Intervalo</th>
                     <th class="col-total">Total</th>
-                    <th class="col-valor-hora">¥/h</th>
                     <th class="col-obs">Observação</th>
                   </tr>
                 </thead>
@@ -458,6 +416,13 @@ export async function renderRegistroHoras(app) {
                 <div class="calc-item">
                   <span class="calc-label">Total horas no mês</span>
                   <span class="calc-value" id="calc-total-horas">${decimalToHHMM(calcTotalHorasFromRecords())}</span>
+                </div>
+                <div class="calc-item">
+                  <span class="calc-label">Valor por hora (¥)</span>
+                  <div class="calc-input-wrap">
+                    <span class="currency-prefix">¥</span>
+                    <input type="number" id="calc-valor-hora" value="${valorHora}" step="0.01" class="calc-input" />
+                  </div>
                 </div>
                 <div class="calc-item calc-item-accent">
                   <span class="calc-label">Subtotal bruto</span>
@@ -489,10 +454,7 @@ export async function renderRegistroHoras(app) {
     `;
 
     // Bind events
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      navigate('/login');
-    });
+    bindSidebarEvents();
 
     document.getElementById('sel-year').addEventListener('change', (e) => {
       selectedYear = parseInt(e.target.value);
@@ -540,11 +502,10 @@ export async function renderRegistroHoras(app) {
       saveRegistro(day);
     });
 
-    // Valor hora per-row events (delegation)
-    document.getElementById('timesheet-body').addEventListener('input', (e) => {
-      if (e.target.classList.contains('input-valor-hora')) {
-        updateCalculations();
-      }
+    // Valor hora events
+    document.getElementById('calc-valor-hora').addEventListener('input', (e) => {
+      valorHora = parseFloat(e.target.value) || 0;
+      updateCalculations();
     });
 
     // Descontos events

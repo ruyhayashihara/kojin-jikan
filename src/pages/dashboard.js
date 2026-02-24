@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const MESES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -92,27 +93,8 @@ export async function renderDashboard(app) {
   const annualLiquido = Object.values(monthData).reduce((s, d) => s + d.total_liquido, 0);
 
   app.innerHTML = `
-    <div class="app-layout">
-      <nav class="navbar">
-        <div class="navbar-brand">
-          <span class="logo-icon-sm">鳥</span>
-          <span class="navbar-title">Keiro</span>
-        </div>
-        <div class="navbar-nav">
-          <a href="#/dashboard" class="nav-link active">Dashboard</a>
-          <a href="#/registro-horas" class="nav-link">Registro de Horas</a>
-          <a href="#/recibos" class="nav-link">Recibos</a>
-          <a href="#/despesas" class="nav-link">Despesas</a>
-          <a href="#/declaracao" class="nav-link">Declaração</a>
-          <a href="#/historico" class="nav-link">Histórico</a>
-          <a href="#/configuracoes" class="nav-link">Configurações</a>
-        </div>
-        <div class="navbar-user">
-          <span class="user-email">${user?.email || ''}</span>
-          <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-        </div>
-      </nav>
-
+    ${renderSidebar('dashboard')}
+    <div class="app-content-wrapper">
       <main class="main-content">
         <div class="page-container page-wide">
 
@@ -232,11 +214,7 @@ export async function renderDashboard(app) {
     </div>
   `;
 
-  // Event: logout
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  });
+  bindSidebarEvents();
 
   // Event: clickable summary rows → navigate to registro-horas with month
   document.querySelectorAll('.summary-row').forEach(row => {

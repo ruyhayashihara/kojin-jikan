@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { NTA_CATEGORIAS, processReceiptWithAI, getConfiancaColor } from '../ai-receipt.js';
 import { verifyInvoiceNumber, renderInvoiceVerifyResult } from '../invoice-api.js';
+import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 export async function renderRecibos(app) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -11,29 +12,6 @@ export async function renderRecibos(app) {
   let imageDataUrl = null;
   let aiResult = null;
 
-  function renderNavbar() {
-    return `
-      <nav class="navbar">
-        <div class="navbar-brand">
-          <span class="logo-icon-sm">鳥</span>
-          <span class="navbar-title">Keiro</span>
-        </div>
-        <div class="navbar-nav">
-          <a href="#/dashboard" class="nav-link">Dashboard</a>
-          <a href="#/registro-horas" class="nav-link">Registro de Horas</a>
-          <a href="#/recibos" class="nav-link active">Recibos</a>
-          <a href="#/despesas" class="nav-link">Despesas</a>
-          <a href="#/declaracao" class="nav-link">Declaração</a>
-          <a href="#/historico" class="nav-link">Histórico</a>
-          <a href="#/configuracoes" class="nav-link">Configurações</a>
-        </div>
-        <div class="navbar-user">
-          <span class="user-email">${user?.email || ''}</span>
-          <button id="logout-btn" class="btn btn-outline btn-sm">Sair</button>
-        </div>
-      </nav>
-    `;
-  }
 
   // Build NTA category select options
   const categoryOptions = NTA_CATEGORIAS.map(c =>
@@ -219,8 +197,8 @@ export async function renderRecibos(app) {
 
   function render() {
     app.innerHTML = `
-      <div class="app-layout">
-        ${renderNavbar()}
+      ${renderSidebar('recibos')}
+      <div class="app-content-wrapper">
         <main class="main-content">
           <div class="page-container">
             <div class="page-header">
@@ -236,6 +214,7 @@ export async function renderRecibos(app) {
       </div>
     `;
     bindEvents();
+    bindSidebarEvents();
   }
 
   function handleImageInput(file) {
@@ -348,11 +327,6 @@ export async function renderRecibos(app) {
   }
 
   function bindEvents() {
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      navigate('/login');
-    });
-
     // Step 1: image inputs
     document.getElementById('camera-input')?.addEventListener('change', (e) => handleImageInput(e.target.files[0]));
     document.getElementById('file-input')?.addEventListener('change', (e) => handleImageInput(e.target.files[0]));
