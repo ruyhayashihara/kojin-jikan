@@ -3566,6 +3566,16 @@ a:hover {
     display: none;
   }
 
+  /* Override collapsed styles for mobile */
+  .sidebar-collapsed {
+    width: var(--sidebar-width) !important;
+  }
+  .sidebar-collapsed .sidebar-label,
+  .sidebar-collapsed .sidebar-brand-text {
+    opacity: 1;
+    width: auto;
+  }
+
   /* Remove sidebar margin from app-layout */
   .app-layout {
     margin-left: 0;

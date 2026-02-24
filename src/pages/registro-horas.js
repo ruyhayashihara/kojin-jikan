@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const DIAS_SEMANA_JA = ['日', '月', '火', '水', '木', '金', '土'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 function getDaysInMonth(year, month) {
@@ -110,51 +111,28 @@ export async function renderRegistroHoras(app) {
   }
 
   // Save a single registro diario
-  const saveRegistro = debounce(async (day) => {
-    const row = registros[day];
-    const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const entrada = document.getElementById(`entrada-${day}`)?.value || '';
-    const saida = document.getElementById(`saida-${day}`)?.value || '';
-    const intervalo = document.getElementById(`intervalo-${day}`)?.value || '';
-    const obs = document.getElementById(`obs-${day}`)?.value || '';
-    const totalHoras = calcTotal(entrada, saida, intervalo);
 
-    if (!entrada && !saida && !obs) {
-      // If row exists with no data and record exists, delete it
-      if (row?.id) {
-        await supabase.from('registro_diario').delete().eq('id', row.id);
-        delete registros[day];
-      }
-      updateCalculations();
-      return;
-    }
-
-    const payload = {
-      usuario_id: userId,
-      data: dateStr,
-      hora_entrada: entrada || null,
-      hora_saida: saida || null,
-      intervalo: intervalo || null,
-      observacao: obs || null,
-    };
-
-    if (row?.id) {
-      await supabase.from('registro_diario').update(payload).eq('id', row.id);
-      registros[day] = { ...row, ...payload };
-    } else {
-      const { data: newRow } = await supabase.from('registro_diario').insert(payload).select().single();
-      if (newRow) registros[day] = newRow;
-    }
-
-    // Update visual for this row
-    updateRowVisual(day, totalHoras);
-    updateCalculations();
-  }, 500);
 
   // Save resumo mensal
   async function saveResumo() {
     const totalHoras = calcTotalHorasMes();
-    const subtotalBruto = Math.round(totalHoras * valorHora * 100) / 100;
+    let subtotalBruto = 0;
+    for (const [dayStr, r] of Object.entries(registros)) {
+      if (!r.hora_entrada || !r.hora_saida) {
+        if (r.tipo_calculo === 'fixo') subtotalBruto += parseFloat(r.valor_diario) || 0;
+        continue;
+      }
+      const e = r.hora_entrada.slice(0, 5);
+      const s = r.hora_saida.slice(0, 5);
+      const i = r.intervalo ? r.intervalo.slice(0, 5) : '';
+      const totalDia = calcTotal(e, s, i);
+      if (r.tipo_calculo === 'fixo') {
+        subtotalBruto += parseFloat(r.valor_diario) || 0;
+      } else {
+        const rowRate = parseFloat(r.valor_diario) || valorHora;
+        subtotalBruto += Math.round(totalDia * rowRate * 100) / 100;
+      }
+    }
     const totalDesc = calcTotalDescontos();
     const totalLiquido = Math.round((subtotalBruto - totalDesc) * 100) / 100;
 
@@ -186,13 +164,11 @@ export async function renderRegistroHoras(app) {
 
   // Calculate total hours for month
   function calcTotalHorasMes() {
-    const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
     let total = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const entrada = document.getElementById(`entrada-${d}`)?.value;
-      const saida = document.getElementById(`saida-${d}`)?.value;
-      const intervalo = document.getElementById(`intervalo-${d}`)?.value;
-      total += calcTotal(entrada, saida, intervalo);
+    for (const [day, r] of Object.entries(registros)) {
+      if (r.hora_entrada && r.hora_saida) {
+        total += calcTotal(r.hora_entrada.slice(0, 5), r.hora_saida.slice(0, 5), r.intervalo ? r.intervalo.slice(0, 5) : '');
+      }
     }
     return Math.round(total * 100) / 100;
   }
@@ -206,26 +182,27 @@ export async function renderRegistroHoras(app) {
     return Math.round(total * 100) / 100;
   }
 
-  // Update row visual styling
-  function updateRowVisual(day, totalHoras) {
-    const row = document.getElementById(`row-${day}`);
-    if (!row) return;
-    const date = new Date(selectedYear, selectedMonth - 1, day);
-    const dow = date.getDay();
-    const isWeekend = dow === 0 || dow === 6;
-
-    row.className = 'timesheet-row';
-    if (isWeekend) row.classList.add('row-weekend');
-    if (totalHoras > 9) row.classList.add('row-overtime');
-
-    const totalEl = document.getElementById(`total-${day}`);
-    if (totalEl) totalEl.textContent = totalHoras > 0 ? decimalToHHMM(totalHoras) : '—';
-  }
 
   // Update all footer calculations
   function updateCalculations() {
     const totalHoras = calcTotalHorasMes();
-    const subtotalBruto = Math.round(totalHoras * valorHora * 100) / 100;
+    let subtotalBruto = 0;
+    for (const [dayStr, r] of Object.entries(registros)) {
+      if (!r.hora_entrada || !r.hora_saida) {
+        if (r.tipo_calculo === 'fixo') subtotalBruto += parseFloat(r.valor_diario) || 0;
+        continue;
+      }
+      const e = r.hora_entrada.slice(0, 5);
+      const s = r.hora_saida.slice(0, 5);
+      const i = r.intervalo ? r.intervalo.slice(0, 5) : '';
+      const totalDia = calcTotal(e, s, i);
+      if (r.tipo_calculo === 'fixo') {
+        subtotalBruto += parseFloat(r.valor_diario) || 0;
+      } else {
+        const rowRate = parseFloat(r.valor_diario) || valorHora;
+        subtotalBruto += Math.round(totalDia * rowRate * 100) / 100;
+      }
+    }
     const totalDesc = calcTotalDescontos();
     const totalLiquido = Math.round((subtotalBruto - totalDesc) * 100) / 100;
 
@@ -337,20 +314,66 @@ export async function renderRegistroHoras(app) {
       const saida = record?.hora_saida?.slice(0, 5) || '';
       const intervalo = record?.intervalo?.slice(0, 5) || '';
       const total = calcTotal(entrada, saida, intervalo);
+      // subtotal calculated dynamically
       const obs = record?.observacao || '';
+
       let rowClass = 'timesheet-row';
       if (isWeekend) rowClass += ' row-weekend';
       if (total > 9) rowClass += ' row-overtime';
 
+      const hasData = entrada || saida || total > 0 || obs;
+
+      const txtEntrada = entrada || '-';
+      const txtSaida = saida || '-';
+      let txtIntervalo = '-';
+      if (intervalo) {
+        const [ih, im] = intervalo.split(':');
+        txtIntervalo = `${parseInt(ih) * 60 + parseInt(im)} 分`;
+      }
+      const txtTotal = total > 0 ? `${total.toFixed(1)}h` : '-';
+      let finalSubtotal = 0;
+      if (record?.tipo_calculo === 'fixo') {
+        finalSubtotal = parseFloat(record.valor_diario) || 0;
+      } else {
+        const rowRate = parseFloat(record?.valor_diario) || valorHora;
+        finalSubtotal = Math.round(total * rowRate * 100) / 100;
+      }
+      const txtSubtotal = finalSubtotal > 0 ? `¥${finalSubtotal.toLocaleString('ja-JP')}` : '-';
+
+      let actionHtml = '';
+      if (hasData) {
+        actionHtml = `
+          <div class="row-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+            <button class="btn-icon btn-edit-row" data-day="${d}" title="Editar (編集)" style="background: none; border: none; cursor: pointer; color: #3b82f6; display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; line-height: 1;">
+              <span>編集</span>
+              <span>Edit</span>
+            </button>
+            <button class="btn-icon btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 0.5rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        `;
+      } else {
+        actionHtml = `
+          <div class="row-actions" style="display: flex; justify-content: flex-end;">
+            <button class="btn-icon btn-add-row" data-day="${d}" title="Adicionar" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 1.5rem; font-weight: bold; padding: 0;">+</button>
+          </div>
+        `;
+      }
+
+      const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[dow] : DIAS_SEMANA[dow];
+
       rows += `
         <tr id="row-${d}" class="${rowClass}">
-          <td class="col-date">${formatDate(selectedYear, selectedMonth, d)}</td>
-          <td class="col-dow">${DIAS_SEMANA[dow]}</td>
-          <td class="col-time"><input type="text" id="entrada-${d}" value="${entrada}" data-day="${d}" class="input-time input-entrada" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
-          <td class="col-time"><input type="text" id="saida-${d}" value="${saida}" data-day="${d}" class="input-time input-saida" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
-          <td class="col-time"><input type="text" id="intervalo-${d}" value="${intervalo}" data-day="${d}" class="input-time input-intervalo" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" inputmode="numeric" /></td>
-          <td class="col-total" id="total-${d}">${total > 0 ? decimalToHHMM(total) : '—'}</td>
-          <td class="col-obs"><input type="text" id="obs-${d}" value="${obs}" data-day="${d}" class="input-obs" placeholder="Observação" /></td>
+          <td class="col-date" style="line-height: 1.2;">
+            ${d}日<br><span style="font-size: 0.85em; color: var(--color-text-muted);">(${diaNome})</span>
+          </td>
+          <td class="col-time" style="text-align: center;">${txtEntrada}</td>
+          <td class="col-time" style="text-align: center;">${txtSaida}</td>
+          <td class="col-time" style="text-align: center;">${txtIntervalo}</td>
+          <td class="col-total" style="text-align: center; color: var(--color-text-muted);">${txtTotal}</td>
+          <td class="col-subtotal" style="text-align: center;">${txtSubtotal}</td>
+          <td class="col-acoes" style="text-align: right; padding-right: 1rem; width: 80px;">${actionHtml}</td>
         </tr>
       `;
     }
@@ -397,18 +420,74 @@ export async function renderRegistroHoras(app) {
                 <thead>
                   <tr>
                     <th class="col-date">Data</th>
-                    <th class="col-dow">Dia</th>
-                    <th class="col-time">Entrada</th>
-                    <th class="col-time">Saída</th>
-                    <th class="col-time">Intervalo</th>
-                    <th class="col-total">Total</th>
-                    <th class="col-obs">Observação</th>
+                    <th class="col-time" style="text-align: center;">Entrada</th>
+                    <th class="col-time" style="text-align: center;">Saída</th>
+                    <th class="col-time" style="text-align: center;">Intervalo</th>
+                    <th class="col-total" style="text-align: center;">Total</th>
+                    <th class="col-subtotal" style="text-align: center;">¥ Subtotal</th>
+                    <th class="col-acoes" style="text-align: right; padding-right: 1rem;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="timesheet-body">
                   ${buildTimesheetRows()}
                 </tbody>
               </table>
+              
+            <!-- Modal de Lançamento de Horas -->
+            <div id="modal-horas" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+              <div class="modal-content" style="width: 100%; max-width: 380px; padding: 1.5rem; background: #1e1e1e; border-radius: 1rem; color: #f3f4f6; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                <h2 id="modal-horas-title" style="margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 600; text-align: left;">YYYY-MM-DD の記録</h2>
+                <input type="hidden" id="modal-day" value="" />
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-entrada" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">入室時刻</label>
+                    <input type="time" id="modal-entrada" class="input-time" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  </div>
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-saida" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">退室時刻</label>
+                    <input type="time" id="modal-saida" class="input-time" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-intervalo" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">休憩時間 (分)</label>
+                    <input type="number" id="modal-intervalo" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  </div>
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-extra" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">残業時間 (時間)</label>
+                    <input type="number" id="modal-extra" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" readonly value="0" />
+                  </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem; gap: 0.25rem;">
+                  <label for="modal-obs" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">メモ (Observação)</label>
+                  <input type="text" id="modal-obs" placeholder="任意のメモ" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.75rem; width: 100%;" />
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; padding-top: 1rem; border-top: 1px solid #404040;">
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-tipo-calculo" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">Tipo de Cálculo</label>
+                    <select id="modal-tipo-calculo" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%; height: 38px;">
+                      <option value="por_hora">Por Hora</option>
+                      <option value="fixo">Dia Fixo</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="gap: 0.25rem;">
+                    <label for="modal-valor-diario" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">Valor (¥)</label>
+                    <input type="number" id="modal-valor-diario" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <button id="modal-btn-cancelar" style="background: transparent; color: #f3f4f6; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.75rem; font-weight: 600; cursor: pointer;">キャンセル</button>
+                  <button id="modal-btn-salvar" style="background: #2563eb; color: #ffffff; border: none; border-radius: 0.5rem; padding: 0.75rem; font-weight: 600; cursor: pointer;">保存</button>
+                </div>
+              </div>
+            </div>
+            </div>
+
             </div>
 
             <div class="calc-footer card">
@@ -426,7 +505,7 @@ export async function renderRegistroHoras(app) {
                 </div>
                 <div class="calc-item calc-item-accent">
                   <span class="calc-label">Subtotal bruto</span>
-                  <span class="calc-value calc-bold" id="calc-subtotal">¥${(calcTotalHorasFromRecords() * valorHora).toLocaleString('ja-JP')}</span>
+                  <span class="calc-value calc-bold" id="calc-subtotal">¥${calcSubtotalBrutoFromRecords().toLocaleString('ja-JP')}</span>
                 </div>
               </div>
             </div>
@@ -467,40 +546,160 @@ export async function renderRegistroHoras(app) {
     });
 
     // Timesheet input events (delegation)
-    document.getElementById('timesheet-body').addEventListener('input', (e) => {
-      // Auto-insert colon after 2 digits for time fields
-      if (e.target.classList.contains('input-time')) {
-        let v = e.target.value.replace(/[^\d:]/g, '');
-        if (v.length === 2 && !v.includes(':') && e.inputType !== 'deleteContentBackward') {
-          e.target.value = v + ':';
-          return;
+
+
+
+
+    const modal = document.getElementById('modal-horas');
+    const mTitle = document.getElementById('modal-horas-title');
+    const mDay = document.getElementById('modal-day');
+    const mEnt = document.getElementById('modal-entrada');
+    const mSai = document.getElementById('modal-saida');
+    const mInt = document.getElementById('modal-intervalo');
+    const mExtra = document.getElementById('modal-extra');
+    const mObs = document.getElementById('modal-obs');
+    const mTipoCalculo = document.getElementById('modal-tipo-calculo');
+    const mValorDiario = document.getElementById('modal-valor-diario');
+
+    function updateExtraHours() {
+      const e = mEnt.value;
+      const s = mSai.value;
+      const i = parseInt(mInt.value) || 0;
+      if (e && s) {
+        // Interval is in minutes for UI, need to convert to hours for calc
+        const intStr = `0${Math.floor(i / 60)}:` + String(i % 60).padStart(2, '0');
+        const t = calcTotal(e, s, intStr);
+        mExtra.value = t > 8 ? (t - 8).toFixed(1) : '0';
+      } else {
+        mExtra.value = '0';
+      }
+    }
+
+    // Bind change events to recalculate extra hours dynamically
+    mEnt.addEventListener('input', updateExtraHours);
+    mSai.addEventListener('input', updateExtraHours);
+    mInt.addEventListener('input', updateExtraHours);
+
+    function openModalForDay(day) {
+      const record = registros[day];
+      const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      mTitle.textContent = `${dateStr} の記録`;
+      mDay.value = day;
+
+      if (record) {
+        // Existing record
+        mEnt.value = record.hora_entrada?.slice(0, 5) || '';
+        mSai.value = record.hora_saida?.slice(0, 5) || '';
+
+        let intMin = 0;
+        if (record.intervalo) {
+          const [h, m] = record.intervalo.split(':');
+          intMin = parseInt(h) * 60 + parseInt(m);
         }
+        mInt.value = intMin || '';
+        mObs.value = record.observacao || '';
+        mTipoCalculo.value = record.tipo_calculo || 'por_hora';
+        mValorDiario.value = record.valor_diario || valorHora;
+      } else {
+        // Pre-fill default values
+        mEnt.value = '08:00';
+        mSai.value = '17:00';
+        mInt.value = '60';
+        mObs.value = '';
+        mTipoCalculo.value = 'por_hora';
+        mValorDiario.value = valorHora;
       }
 
-      const day = parseInt(e.target.dataset.day);
-      if (!day) return;
-      const entrada = document.getElementById(`entrada-${day}`)?.value;
-      const saida = document.getElementById(`saida-${day}`)?.value;
-      const total = calcTotal(entrada, saida);
-      updateRowVisual(day, total);
-      updateCalculations();
+      updateExtraHours();
+      modal.style.display = 'flex';
+    }
+
+    document.getElementById('modal-btn-cancelar').addEventListener('click', () => {
+      modal.style.display = 'none';
+      mDay.value = '';
     });
 
-    document.getElementById('timesheet-body').addEventListener('change', (e) => {
-      // Auto-format on blur: "0800" -> "08:00"
-      if (e.target.classList.contains('input-time')) {
-        let v = e.target.value.replace(/[^\d]/g, '');
-        if (v.length === 4) {
-          e.target.value = v.slice(0, 2) + ':' + v.slice(2);
-        } else if (v.length === 3) {
-          e.target.value = '0' + v[0] + ':' + v.slice(1);
+    document.getElementById('modal-btn-salvar').addEventListener('click', async () => {
+      const day = parseInt(mDay.value);
+      if (!day) return;
+
+      const btn = document.getElementById('modal-btn-salvar');
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      try {
+        const entrada = mEnt.value;
+        const saida = mSai.value;
+        const intMin = parseInt(mInt.value) || 0;
+        const obs = mObs.value;
+        const tipoCalculo = mTipoCalculo.value;
+        const valorDiario = parseFloat(mValorDiario.value) || 0;
+
+        const intStr = intMin > 0 ? `0${Math.floor(intMin / 60)}:` + String(intMin % 60).padStart(2, '0') : null;
+
+        const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const row = registros[day];
+
+        if (!entrada && !saida && !obs) {
+          if (row?.id) {
+            await supabase.from('registro_diario').delete().eq('id', row.id);
+            delete registros[day];
+          }
+        } else {
+          const payload = {
+            usuario_id: userId,
+            data: dateStr,
+            hora_entrada: entrada || null,
+            hora_saida: saida || null,
+            intervalo: intStr,
+            observacao: obs || null,
+            tipo_calculo: tipoCalculo,
+            valor_diario: valorDiario,
+          };
+
+          if (row?.id) {
+            await supabase.from('registro_diario').update(payload).eq('id', row.id);
+            registros[day] = { ...row, ...payload };
+          } else {
+            const { data: newRow } = await supabase.from('registro_diario').insert(payload).select().single();
+            if (newRow) registros[day] = newRow;
+          }
         }
+
+        modal.style.display = 'none';
+        mDay.value = '';
+        document.getElementById('timesheet-body').innerHTML = buildTimesheetRows();
+        updateCalculations();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '保存';
+      }
+    });
+
+    document.getElementById('timesheet-body').addEventListener('click', async (e) => {
+      const btnAdd = e.target.closest('.btn-add-row');
+      const btnEdit = e.target.closest('.btn-edit-row');
+      const btnDel = e.target.closest('.btn-delete-row');
+
+      if (btnAdd || btnEdit) {
+        openModalForDay(parseInt((btnAdd || btnEdit).dataset.day));
       }
 
-      const day = parseInt(e.target.dataset.day);
-      if (!day) return;
-      saveRegistro(day);
+      if (btnDel) {
+        const day = parseInt(btnDel.dataset.day);
+        const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[new Date(selectedYear, selectedMonth - 1, day).getDay()] : day;
+        if (confirm(`Apagar os dados do dia ${day} (${diaNome})?`)) {
+          const row = registros[day];
+          if (row?.id) {
+            await supabase.from('registro_diario').delete().eq('id', row.id);
+            delete registros[day];
+            document.getElementById('timesheet-body').innerHTML = buildTimesheetRows();
+            updateCalculations();
+          }
+        }
+      }
     });
+
 
     // Valor hora events
     document.getElementById('calc-valor-hora').addEventListener('input', (e) => {
@@ -514,6 +713,28 @@ export async function renderRegistroHoras(app) {
     // Render descontos
     renderDescontos();
     updateCalculations();
+  }
+
+
+  function calcSubtotalBrutoFromRecords() {
+    let subtotalBruto = 0;
+    for (const [dayStr, r] of Object.entries(registros)) {
+      if (!r.hora_entrada || !r.hora_saida) {
+        if (r.tipo_calculo === 'fixo') subtotalBruto += parseFloat(r.valor_diario) || 0;
+        continue;
+      }
+      const e = r.hora_entrada.slice(0, 5);
+      const s = r.hora_saida.slice(0, 5);
+      const i = r.intervalo ? r.intervalo.slice(0, 5) : '';
+      const totalDia = calcTotal(e, s, i);
+      if (r.tipo_calculo === 'fixo') {
+        subtotalBruto += parseFloat(r.valor_diario) || 0;
+      } else {
+        const rowRate = parseFloat(r.valor_diario) || valorHora;
+        subtotalBruto += Math.round(totalDia * rowRate * 100) / 100;
+      }
+    }
+    return Math.round(subtotalBruto * 100) / 100;
   }
 
   // Helper to calc total from loaded records (before DOM is ready)

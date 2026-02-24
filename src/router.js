@@ -31,19 +31,32 @@ export async function handleRoute() {
         }
     }
 
-    const handler = routes[hash];
-    if (handler) {
-        const cleanup = await handler(app);
-        if (typeof cleanup === 'function') {
-            currentCleanup = cleanup;
-        }
-    } else {
-        app.innerHTML = `
+    try {
+        const handler = routes[hash];
+        if (handler) {
+            const cleanup = await handler(app);
+            if (typeof cleanup === 'function') {
+                currentCleanup = cleanup;
+            }
+        } else {
+            app.innerHTML = `
       <div class="page-container">
         <div class="card" style="text-align:center;">
           <h2>404</h2>
           <p>Página não encontrada</p>
           <a href="#/login" class="btn btn-primary">Voltar ao login</a>
+        </div>
+      </div>
+    `;
+        }
+    } catch (error) {
+        console.error("Router error handling hash:", hash, error);
+        app.innerHTML = `
+      <div class="page-container">
+        <div class="card" style="text-align:center;">
+          <h2>Erro Crítico</h2>
+          <p>Erro ao carregar a página.</p>
+          <pre style="text-align:left; color:red; margin-top:1rem; font-size:0.8rem;">${error.message}</pre>
         </div>
       </div>
     `;
