@@ -2,13 +2,13 @@ import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 
 export async function renderCadastro(app) {
-    app.innerHTML = `
+  app.innerHTML = `
     <div class="auth-page">
       <div class="auth-container">
         <div class="auth-header">
           <div class="auth-logo">
             <span class="logo-icon">鳥</span>
-            <h1>Keiro</h1>
+            <h1>マイ個人</h1>
           </div>
           <p class="auth-subtitle">Gestão Fiscal para Autônomos no Japão<br/><span class="jp-text">自営業者のための税務管理</span></p>
         </div>
@@ -46,40 +46,40 @@ export async function renderCadastro(app) {
     </div>
   `;
 
-    const form = document.getElementById('cadastro-form');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('cadastro-email').value.trim();
-        const password = document.getElementById('cadastro-password').value;
-        const confirm = document.getElementById('cadastro-confirm').value;
-        const errorDiv = document.getElementById('cadastro-error');
-        const successDiv = document.getElementById('cadastro-success');
-        const btn = document.getElementById('cadastro-btn');
+  const form = document.getElementById('cadastro-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('cadastro-email').value.trim();
+    const password = document.getElementById('cadastro-password').value;
+    const confirm = document.getElementById('cadastro-confirm').value;
+    const errorDiv = document.getElementById('cadastro-error');
+    const successDiv = document.getElementById('cadastro-success');
+    const btn = document.getElementById('cadastro-btn');
 
-        errorDiv.style.display = 'none';
-        successDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
 
-        if (password !== confirm) {
-            errorDiv.textContent = 'As senhas não coincidem.';
-            errorDiv.style.display = 'block';
-            return;
-        }
+    if (password !== confirm) {
+      errorDiv.textContent = 'As senhas não coincidem.';
+      errorDiv.style.display = 'block';
+      return;
+    }
 
-        btn.disabled = true;
-        btn.textContent = 'Criando conta...';
+    btn.disabled = true;
+    btn.textContent = 'Criando conta...';
 
-        try {
-            const { data, error } = await supabase.auth.signUp({ email, password });
-            if (error) throw error;
-            successDiv.innerHTML = 'Conta criada com sucesso! Verifique seu email para confirmar.<br/>Redirecionando para o login...';
-            successDiv.style.display = 'block';
-            form.reset();
-            setTimeout(() => navigate('/login'), 3000);
-        } catch (err) {
-            errorDiv.textContent = err.message || 'Erro ao criar conta.';
-            errorDiv.style.display = 'block';
-            btn.disabled = false;
-            btn.textContent = 'Criar Conta';
-        }
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      successDiv.innerHTML = 'Conta criada com sucesso! Verifique seu email para confirmar.<br/>Redirecionando para o login...';
+      successDiv.style.display = 'block';
+      form.reset();
+      setTimeout(() => navigate('/login'), 3000);
+    } catch (err) {
+      errorDiv.textContent = err.message || 'Erro ao criar conta.';
+      errorDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Criar Conta';
+    }
+  });
 }

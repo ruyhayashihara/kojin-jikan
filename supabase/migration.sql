@@ -1,5 +1,5 @@
 -- ============================================================
--- Keiro — Migração do Banco de Dados
+-- マイ個人 — Migração do Banco de Dados
 -- Todas as tabelas + Row Level Security
 -- Execute este script no SQL Editor do Supabase
 -- ============================================================

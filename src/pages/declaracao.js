@@ -118,7 +118,7 @@ export async function renderDeclaracao(app) {
     const lucro = rec.receitaLiquida - totalDedutivel;
     const regime = perfil.regime_declaracao === 'azul' ? '青色申告 (Azul)' : '白色申告 (Branco)';
 
-    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Declaração Fiscal ${selectedYear} — Keiro</title>
+    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Declaração Fiscal ${selectedYear} — マイ個人</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1e293b;font-size:14px}
     h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin:24px 0 12px;color:#3730a3;border-bottom:2px solid #e0e7ff;padding-bottom:6px}
     h3{font-size:13px;margin:16px 0 8px}
@@ -130,7 +130,7 @@ export async function renderDeclaracao(app) {
     .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
     .badge-blue{background:#dbeafe;color:#2563eb}.badge-green{background:#dcfce7;color:#16a34a}</style></head><body>
     <h1>Declaração Fiscal ${selectedYear} — 確定申告</h1>
-    <p class="meta">Gerado por Keiro em ${new Date().toLocaleDateString('pt-BR')} · Regime: <span class="badge ${perfil.regime_declaracao === 'azul' ? 'badge-blue' : 'badge-green'}">${regime}</span></p>
+    <p class="meta">Gerado por マイ個人 em ${new Date().toLocaleDateString('pt-BR')} · Regime: <span class="badge ${perfil.regime_declaracao === 'azul' ? 'badge-blue' : 'badge-green'}">${regime}</span></p>
     <h2>1. Resumo de Receitas</h2>
     <table><tr><td>Total de horas trabalhadas</td><td class="right bold">${rec.totalHoras}h</td></tr>
     <tr><td>Valor por hora médio</td><td class="right">¥${rec.avgValorHora.toLocaleString('ja-JP')}</td></tr>
@@ -161,7 +161,7 @@ export async function renderDeclaracao(app) {
     const lucro = rec.receitaLiquida - totalDedutivel;
     const regime = perfil.regime_declaracao === 'azul' ? '青色申告' : '白色申告';
     const text = [
-      `確定申告 ${selectedYear} — Keiro`,
+      `確定申告 ${selectedYear} — マイ個人`,
       `Regime: ${regime}`,
       ``,
       `Horas trabalhadas: ${rec.totalHoras}h`,
