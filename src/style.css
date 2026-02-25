@@ -3503,9 +3503,19 @@ a:hover {
   border-color: #86efac;
 }
 
+[data-theme='dark'] .invoice-status-green {
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
 .invoice-status-red {
   background: #fef2f2;
   border-color: #fca5a5;
+}
+
+[data-theme='dark'] .invoice-status-red {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
 }
 
 .invoice-status-icon {
@@ -3551,6 +3561,12 @@ a:hover {
   font-size: var(--font-size-sm);
   color: #92400e;
   line-height: 1.5;
+}
+
+[data-theme='dark'] .invoice-warning {
+  background: rgba(217, 119, 6, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: var(--color-text);
 }
 
 @keyframes fadeIn {
