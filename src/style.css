@@ -1526,8 +1526,8 @@ a:hover {
 [data-theme='dark'] .bento-card-highlight {
   border-color: rgba(74, 222, 128, 0.5);
   /* semi-transparent green border */
-  background: rgba(22, 163, 74, 0.1);
-  /* subtle dark green background */
+  background: var(--color-surface);
+  /* match other cards background */
 }
 
 .bento-icon {
