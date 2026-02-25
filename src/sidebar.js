@@ -71,7 +71,6 @@ export function renderSidebar(activePage) {
     <!-- Mobile top bar -->
     <div class="mobile-topbar">
       <a href="#/dashboard" class="mobile-brand">
-        <span class="logo-icon-sm">鳥</span>
         <span class="mobile-brand-title">マイ個人</span>
       </a>
       <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
@@ -86,7 +85,6 @@ export function renderSidebar(activePage) {
     <aside class="sidebar ${collapsed ? 'sidebar-collapsed' : ''}" id="sidebar">
       <div class="sidebar-header">
         <a href="#/dashboard" class="sidebar-brand">
-          <span class="sidebar-brand-icon">鳥</span>
           <span class="sidebar-brand-text">マイ個人</span>
         </a>
         <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Recolher menu">

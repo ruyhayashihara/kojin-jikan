@@ -7,7 +7,6 @@ export async function renderCadastro(app) {
       <div class="auth-container">
         <div class="auth-header">
           <div class="auth-logo">
-            <span class="logo-icon">鳥</span>
             <h1>マイ個人</h1>
           </div>
           <p class="auth-subtitle">Gestão Fiscal para Autônomos no Japão<br/><span class="jp-text">自営業者のための税務管理</span></p>
