@@ -73,7 +73,13 @@ export async function renderCadastro(app) {
     btn.textContent = 'Criando conta...';
 
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
       if (error) throw error;
       successDiv.innerHTML = 'Conta criada com sucesso! Verifique seu email para confirmar.<br/>Redirecionando para o login...';
       successDiv.style.display = 'block';
