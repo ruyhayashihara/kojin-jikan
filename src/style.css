@@ -1036,8 +1036,24 @@ a:hover {
   background: #f1f5f9;
 }
 
+[data-theme='dark'] .row-weekend {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.row-weekend.is-saturday .col-date {
+  color: #3b82f6;
+}
+
+.row-weekend.is-sunday .col-date {
+  color: #ef4444;
+}
+
 .row-overtime {
   background: #fefce8 !important;
+}
+
+[data-theme='dark'] .row-overtime {
+  background: rgba(234, 179, 8, 0.1) !important;
 }
 
 /* Column widths */
@@ -3570,6 +3586,7 @@ a:hover {
   .sidebar-collapsed {
     width: var(--sidebar-width) !important;
   }
+
   .sidebar-collapsed .sidebar-label,
   .sidebar-collapsed .sidebar-brand-text {
     opacity: 1;

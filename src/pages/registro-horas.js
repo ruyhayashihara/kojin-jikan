@@ -318,7 +318,8 @@ export async function renderRegistroHoras(app) {
       const obs = record?.observacao || '';
 
       let rowClass = 'timesheet-row';
-      if (isWeekend) rowClass += ' row-weekend';
+      if (dow === 0) rowClass += ' row-weekend is-sunday';
+      else if (dow === 6) rowClass += ' row-weekend is-saturday';
       if (total > 9) rowClass += ' row-overtime';
 
       const hasData = entrada || saida || total > 0 || obs;
