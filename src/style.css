@@ -1523,6 +1523,13 @@ a:hover {
   background: linear-gradient(135deg, #f0fdf4, #ffffff);
 }
 
+[data-theme='dark'] .bento-card-highlight {
+  border-color: rgba(74, 222, 128, 0.5);
+  /* semi-transparent green border */
+  background: rgba(22, 163, 74, 0.1);
+  /* subtle dark green background */
+}
+
 .bento-icon {
   width: 42px;
   height: 42px;
@@ -1697,6 +1704,11 @@ a:hover {
 .summary-row-current {
   background: #eef2ff;
   font-weight: 600;
+}
+
+[data-theme='dark'] .summary-row-current {
+  background: rgba(255, 255, 255, 0.05);
+  /* very subtle highlight for dark mode */
 }
 
 .summary-row-current:hover {
