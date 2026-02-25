@@ -21,6 +21,16 @@ export async function handleRoute() {
         currentCleanup = null;
     }
 
+    // Handle Supabase OAuth / Email Confirmation redirects
+    // Supabase redirects to #access_token=...&refresh_token=...
+    if (hash.startsWith('access_token=')) {
+        // Supabase client automatically parses the hash and sets the session.
+        // We just need to wait a moment and then clean up the URL to show the dashboard.
+        window.history.replaceState(null, '', window.location.pathname);
+        window.location.hash = '/dashboard';
+        return;
+    }
+
     const publicRoutes = ['/login', '/cadastro'];
 
     if (!publicRoutes.includes(hash)) {
