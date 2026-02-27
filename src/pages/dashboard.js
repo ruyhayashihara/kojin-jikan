@@ -158,10 +158,10 @@ export async function renderDashboard(app) {
               <thead>
                 <tr>
                   <th>Mês</th>
-                  <th>Horas</th>
-                  <th>Bruto (¥)</th>
-                  <th>Descontos (¥)</th>
-                  <th>Líquido (¥)</th>
+                  <th>Hs</th>
+                  <th>Bruto</th>
+                  <th>Desc.</th>
+                  <th>Líq.</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +169,7 @@ export async function renderDashboard(app) {
               </tbody>
               <tfoot>
                 <tr class="summary-total-row">
-                  <td><strong>Total Anual</strong></td>
+                  <td><strong>Total</strong></td>
                   <td><strong>${annualHoras > 0 ? annualHoras.toFixed(1) + 'h' : '—'}</strong></td>
                   <td><strong>¥${annualBruto > 0 ? annualBruto.toLocaleString('ja-JP') : '0'}</strong></td>
                   <td><strong>¥${annualDescontos > 0 ? annualDescontos.toLocaleString('ja-JP') : '0'}</strong></td>

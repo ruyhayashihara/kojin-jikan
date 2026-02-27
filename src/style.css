@@ -1946,13 +1946,14 @@ a:hover {
   }
 
   .summary-table {
-    font-size: var(--font-size-xs);
+    font-size: 0.65rem;
     width: 100%;
   }
 
   .summary-table td,
   .summary-table th {
-    padding: var(--space-1) 2px;
+    padding: var(--space-1) 1px;
+    letter-spacing: -0.02em;
   }
 }
 
