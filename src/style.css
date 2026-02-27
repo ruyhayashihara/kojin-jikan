@@ -1947,14 +1947,12 @@ a:hover {
 
   .summary-table {
     font-size: var(--font-size-xs);
-    width: max-content;
-    min-width: 500px;
-    /* Force scroll */
+    width: 100%;
   }
 
   .summary-table td,
   .summary-table th {
-    padding: var(--space-2) var(--space-2);
+    padding: var(--space-1) 2px;
   }
 }
 
