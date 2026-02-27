@@ -1947,7 +1947,8 @@ a:hover {
 
   .summary-table {
     font-size: 0.65rem;
-    width: 100%;
+    width: max-content;
+    margin: 0 auto;
   }
 
   .summary-table td,
