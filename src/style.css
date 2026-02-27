@@ -1280,6 +1280,24 @@ a:hover {
   flex: 0 0 130px;
 }
 
+.desconto-valor-wrap .currency-prefix {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.desconto-valor-wrap input {
+  padding-left: 1.75rem;
+}
+
+.desconto-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .desconto-valor {
   width: 100%;
   padding: var(--space-2) var(--space-3);
@@ -1313,6 +1331,24 @@ a:hover {
 }
 
 .btn-icon:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.btn-save-desconto {
+  color: #3b82f6;
+}
+
+.btn-save-desconto:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+}
+
+.btn-delete-desconto {
+  color: var(--color-error);
+}
+
+.btn-delete-desconto:hover {
   background: var(--color-error-bg);
   color: var(--color-error);
 }
@@ -1396,6 +1432,30 @@ a:hover {
 
   .col-obs {
     min-width: 60px;
+  }
+
+  .desconto-row {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .desconto-desc {
+    flex: 1 1 100%;
+  }
+
+  .desconto-tipo {
+    flex: 1 1 calc(50% - 0.5rem);
+    width: auto;
+  }
+
+  .desconto-valor-wrap {
+    flex: 1 1 calc(50% - 0.5rem);
+    width: auto;
+  }
+
+  .desconto-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
   }
 
   .period-selectors {

@@ -282,20 +282,42 @@ export async function renderRegistroHoras(app) {
           <span class="currency-prefix">¥</span>
           <input type="number" class="desconto-valor" placeholder="0" step="0.01" value="${d.valor || ''}" />
         </div>
-        <button class="btn-icon btn-delete-desconto" data-index="${i}" title="Remover desconto">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4.5 2V1.5C4.5 0.948 4.948 0.5 5.5 0.5H10.5C11.052 0.5 11.5 0.948 11.5 1.5V2M1 3.5H15M2.5 3.5V14C2.5 14.552 2.948 15 3.5 15H12.5C13.052 15 13.5 14.552 13.5 14V3.5M6 6.5V12M10 6.5V12" stroke="currentColor" stroke-linecap="round"/></svg>
-        </button>
+        <div class="desconto-actions">
+          <button class="btn-icon btn-save-desconto" data-index="${i}" title="Salvar desconto">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          </button>
+          <button class="btn-icon btn-delete-desconto" data-index="${i}" title="Remover desconto">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4.5 2V1.5C4.5 0.948 4.948 0.5 5.5 0.5H10.5C11.052 0.5 11.5 0.948 11.5 1.5V2M1 3.5H15M2.5 3.5V14C2.5 14.552 2.948 15 3.5 15H12.5C13.052 15 13.5 14.552 13.5 14V3.5M6 6.5V12M10 6.5V12" stroke="currentColor" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
     `).join('');
 
     // Bind events
+    container.querySelectorAll('.btn-save-desconto').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = btn.closest('.desconto-row');
+        const idx = parseInt(btn.dataset.index);
+
+        btn.innerHTML = '...';
+        btn.disabled = true;
+
+        await saveDesconto(descontos[idx], idx);
+
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>';
+      });
+    });
+
+    // Optional: Keep blur events but make them non-debounced, direct saves that don't depend on the user clicking save
     container.querySelectorAll('.desconto-desc, .desconto-tipo, .desconto-valor').forEach(el => {
       el.addEventListener('change', () => {
         const row = el.closest('.desconto-row');
         const idx = parseInt(row.dataset.index);
-        debouncedSaveDesconto(descontos[idx], idx);
+        debouncedSaveDesconto(descontos[idx], idx); // keep auto-save as fallback
       });
     });
+
     container.querySelectorAll('.btn-delete-desconto').forEach(btn => {
       btn.addEventListener('click', () => deleteDesconto(parseInt(btn.dataset.index)));
     });
@@ -320,7 +342,7 @@ export async function renderRegistroHoras(app) {
       let rowClass = 'timesheet-row';
       if (dow === 0) rowClass += ' row-weekend is-sunday';
       else if (dow === 6) rowClass += ' row-weekend is-saturday';
-      if (total > 9) rowClass += ' row-overtime';
+      if (total > 8) rowClass += ' row-overtime';
 
       const hasData = entrada || saida || total > 0 || obs;
 
@@ -458,7 +480,7 @@ export async function renderRegistroHoras(app) {
                   </div>
                   <div class="form-group" style="gap: 0.25rem;">
                     <label for="modal-extra" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">残業時間 (時間)</label>
-                    <input type="number" id="modal-extra" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" readonly value="0" />
+                    <input type="number" id="modal-extra" step="0.1" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" value="0" />
                   </div>
                 </div>
                 
@@ -601,6 +623,12 @@ export async function renderRegistroHoras(app) {
         mObs.value = record.observacao || '';
         mTipoCalculo.value = record.tipo_calculo || 'por_hora';
         mValorDiario.value = record.valor_diario || valorHora;
+
+        if (record.horas_extras !== null && record.horas_extras !== undefined) {
+          mExtra.value = record.horas_extras;
+        } else {
+          updateExtraHours();
+        }
       } else {
         // Pre-fill default values
         mEnt.value = '08:00';
@@ -609,9 +637,9 @@ export async function renderRegistroHoras(app) {
         mObs.value = '';
         mTipoCalculo.value = 'por_hora';
         mValorDiario.value = valorHora;
+        updateExtraHours();
       }
 
-      updateExtraHours();
       modal.style.display = 'flex';
     }
 
@@ -656,6 +684,7 @@ export async function renderRegistroHoras(app) {
             observacao: obs || null,
             tipo_calculo: tipoCalculo,
             valor_diario: valorDiario,
+            horas_extras: parseFloat(mExtra.value) || 0,
           };
 
           if (row?.id) {

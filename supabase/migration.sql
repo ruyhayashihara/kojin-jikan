@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS registro_diario (
   observacao TEXT,
   mes INTEGER GENERATED ALWAYS AS (EXTRACT(MONTH FROM data)::INTEGER) STORED,
   ano INTEGER GENERATED ALWAYS AS (EXTRACT(YEAR FROM data)::INTEGER) STORED,
+  tipo_calculo TEXT,
+  valor_diario NUMERIC(10,2),
+  horas_extras NUMERIC(5,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
