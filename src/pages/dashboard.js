@@ -70,7 +70,7 @@ export async function renderDashboard(app) {
   }).join('');
 
   // Build summary table rows
-  const tableRows = MESES_NOME.map((name, i) => {
+  const tableRows = MESES_CURTO.map((name, i) => {
     const m = i + 1;
     const d = monthData[m];
     const isCurrentMonth = m === currentMonth;
