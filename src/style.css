@@ -714,11 +714,13 @@ a:hover {
   flex-direction: column;
   margin-left: var(--sidebar-width);
   transition: margin-left var(--transition-slow);
+  min-width: 0;
 }
 
 .main-content {
   flex: 1;
   padding: var(--space-8);
+  min-width: 0;
 }
 
 .page-container {
