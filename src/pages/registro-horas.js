@@ -367,11 +367,7 @@ export async function renderRegistroHoras(app) {
       if (hasData) {
         actionHtml = `
           <div class="row-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-            <button class="btn-icon btn-edit-row" data-day="${d}" title="Editar (編集)" style="background: none; border: none; cursor: pointer; color: #3b82f6; display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; line-height: 1;">
-              <span>編集</span>
-              <span>Edit</span>
-            </button>
-            <button class="btn-icon btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 0.5rem;">
+            <button class="btn-icon btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 0.5rem; padding: 0.25rem;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
             </button>
           </div>
@@ -379,7 +375,7 @@ export async function renderRegistroHoras(app) {
       } else {
         actionHtml = `
           <div class="row-actions" style="display: flex; justify-content: flex-end;">
-            <button class="btn-icon btn-add-row" data-day="${d}" title="Adicionar" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 1.5rem; font-weight: bold; padding: 0;">+</button>
+            <span style="color: #3b82f6; font-size: 1.25rem; font-weight: bold; margin-right: 0.25rem;">+</span>
           </div>
         `;
       }
@@ -707,15 +703,11 @@ export async function renderRegistroHoras(app) {
     });
 
     document.getElementById('timesheet-body').addEventListener('click', async (e) => {
-      const btnAdd = e.target.closest('.btn-add-row');
-      const btnEdit = e.target.closest('.btn-edit-row');
+      // If clicking the delete button specifically
       const btnDel = e.target.closest('.btn-delete-row');
 
-      if (btnAdd || btnEdit) {
-        openModalForDay(parseInt((btnAdd || btnEdit).dataset.day));
-      }
-
       if (btnDel) {
+        e.stopPropagation(); // prevent row click from opening modal
         const day = parseInt(btnDel.dataset.day);
         const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[new Date(selectedYear, selectedMonth - 1, day).getDay()] : day;
         if (confirm(`Apagar os dados do dia ${day} (${diaNome})?`)) {
@@ -726,6 +718,18 @@ export async function renderRegistroHoras(app) {
             document.getElementById('timesheet-body').innerHTML = buildTimesheetRows();
             updateCalculations();
           }
+        }
+        return; // stop execution so it doesn't open the modal
+      }
+
+      // If clicking anywhere else on the row, open the edit modal
+      const row = e.target.closest('tr.timesheet-row');
+      if (row) {
+        // Extract day from id="row-15"
+        const rowId = row.getAttribute('id');
+        if (rowId) {
+          const day = parseInt(rowId.replace('row-', ''));
+          openModalForDay(day);
         }
       }
     });

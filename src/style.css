@@ -1034,6 +1034,7 @@ a:hover {
 
 .timesheet-row {
   transition: background var(--transition-fast);
+  cursor: pointer;
 }
 
 .timesheet-row:hover {
@@ -1408,9 +1409,7 @@ a:hover {
 
   .timesheet-table {
     font-size: var(--font-size-xs);
-    width: max-content;
-    min-width: 500px;
-    /* Force scroll */
+    width: 100%;
   }
 
   .timesheet-table th {
@@ -1419,7 +1418,7 @@ a:hover {
   }
 
   .timesheet-table td {
-    padding: 2px 3px;
+    padding: 2px 2px;
   }
 
   .input-time,
@@ -1429,7 +1428,7 @@ a:hover {
   }
 
   .col-date {
-    width: 42px;
+    width: 36px;
     font-size: var(--font-size-xs);
   }
 
@@ -1439,7 +1438,11 @@ a:hover {
   }
 
   .col-time {
-    width: 58px;
+    width: 45px;
+  }
+
+  .col-acoes {
+    width: 40px;
   }
 
   .col-total {
