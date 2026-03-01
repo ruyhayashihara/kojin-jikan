@@ -941,10 +941,15 @@ a:hover {
 /* --- Period Selectors --- */
 .period-selectors {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
+}
+
+.selectors-wrapper {
+  display: flex;
+  gap: var(--space-4);
 }
 
 .selector-group {

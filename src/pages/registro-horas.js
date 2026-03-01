@@ -422,14 +422,16 @@ export async function renderRegistroHoras(app) {
               <p>Controle de horas trabalhadas — 勤務時間記録</p>
             </div>
 
-            <div class="period-selectors">
-              <div class="selector-group">
-                <label for="sel-year">Ano</label>
-                <select id="sel-year">${yearOptions.join('')}</select>
-              </div>
-              <div class="selector-group">
-                <label for="sel-month">Mês</label>
-                <select id="sel-month">${monthOptions.join('')}</select>
+            <div class="period-selectors card">
+              <div class="selectors-wrapper">
+                <div class="selector-group">
+                  <label for="sel-year">Ano</label>
+                  <select id="sel-year">${yearOptions.join('')}</select>
+                </div>
+                <div class="selector-group">
+                  <label for="sel-month">Mês</label>
+                  <select id="sel-month">${monthOptions.join('')}</select>
+                </div>
               </div>
               <div class="period-label">${MESES_NOME[selectedMonth - 1]} ${selectedYear}</div>
             </div>
