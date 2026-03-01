@@ -1674,9 +1674,9 @@ a:hover {
   color: var(--color-text-muted);
 }
 
-/* --- Bar Chart --- */
 .chart-section {
   margin-bottom: var(--space-6);
+  padding: var(--space-6);
 }
 
 .chart-container {
