@@ -170,10 +170,10 @@ export async function renderDashboard(app) {
               <tfoot>
                 <tr class="summary-total-row">
                   <td><strong>Total</strong></td>
-                  <td><strong>${annualHoras > 0 ? annualHoras.toFixed(1) + 'h' : '—'}</strong></td>
-                  <td><strong>¥${annualBruto > 0 ? annualBruto.toLocaleString('ja-JP') : '0'}</strong></td>
-                  <td><strong>¥${annualDescontos > 0 ? annualDescontos.toLocaleString('ja-JP') : '0'}</strong></td>
-                  <td class="${annualLiquido >= 0 ? 'col-positive' : 'col-negative'}"><strong>¥${annualLiquido !== 0 ? annualLiquido.toLocaleString('ja-JP') : '0'}</strong></td>
+                  <td class="col-num"><strong>${annualHoras > 0 ? annualHoras.toFixed(1) + 'h' : '—'}</strong></td>
+                  <td class="col-num"><strong>¥${annualBruto > 0 ? annualBruto.toLocaleString('ja-JP') : '0'}</strong></td>
+                  <td class="col-num col-discount"><strong>¥${annualDescontos > 0 ? annualDescontos.toLocaleString('ja-JP') : '0'}</strong></td>
+                  <td class="col-num ${annualLiquido >= 0 ? 'col-positive' : 'col-negative'}"><strong>¥${annualLiquido !== 0 ? annualLiquido.toLocaleString('ja-JP') : '0'}</strong></td>
                 </tr>
               </tfoot>
             </table>
