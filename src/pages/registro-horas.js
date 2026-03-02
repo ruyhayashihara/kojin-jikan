@@ -509,8 +509,6 @@ export async function renderRegistroHoras(app) {
             </div>
             </div>
 
-            </div>
-
             <div class="calc-footer card">
               <div class="calc-grid">
                 <div class="calc-item">
