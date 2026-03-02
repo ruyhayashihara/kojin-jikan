@@ -996,7 +996,7 @@ a:hover {
 
 /* --- Timesheet Table --- */
 .timesheet-wrapper {
-  padding: 0;
+  padding: 0 24px;
   overflow-x: auto;
   margin-bottom: var(--space-6);
   width: 100%;
