@@ -71,14 +71,25 @@ export async function renderDespesas(app) {
   async function deleteDespesa(id) {
     console.log('[despesa] deleteDespesa called with id:', id);
 
-    // Custom confirmation modal instead of window.confirm
     const confirmed = await showConfirmModal('Excluir esta despesa?', 'Esta ação não pode ser desfeita.');
     if (!confirmed) return;
 
-    const { error } = await supabase.from('despesa').delete().eq('id', id);
-    if (error) {
-      console.error('[despesa] Error deleting:', error);
-      return;
+    // Check if this despesa is linked to a desconto_mensal
+    const despesa = despesas.find(d => String(d.id) === String(id));
+    if (despesa?.desconto_mensal_id) {
+      // Delete the linked desconto (CASCADE will also delete this despesa)
+      const { error } = await supabase.from('desconto_mensal').delete().eq('id', despesa.desconto_mensal_id);
+      if (error) {
+        console.error('[despesa] Error deleting linked desconto:', error);
+        return;
+      }
+      console.log('[despesa] Deleted linked desconto:', despesa.desconto_mensal_id);
+    } else {
+      const { error } = await supabase.from('despesa').delete().eq('id', id);
+      if (error) {
+        console.error('[despesa] Error deleting:', error);
+        return;
+      }
     }
     console.log('[despesa] Deleted successfully:', id);
     despesas = despesas.filter(d => d.id !== id);
@@ -131,6 +142,17 @@ export async function renderDespesas(app) {
       revisado_usuario: document.getElementById('edit-revisado')?.checked || false,
     };
     await supabase.from('despesa').update(payload).eq('id', editingDespesa.id);
+
+    // Sync back to desconto_mensal if linked
+    if (editingDespesa.desconto_mensal_id) {
+      const descontoUpdate = {
+        descricao: payload.descricao,
+        valor: payload.valor,
+      };
+      await supabase.from('desconto_mensal').update(descontoUpdate).eq('id', editingDespesa.desconto_mensal_id);
+      console.log('[despesa] Synced edit back to desconto:', editingDespesa.desconto_mensal_id);
+    }
+
     const idx = despesas.findIndex(d => d.id === editingDespesa.id);
     if (idx >= 0) despesas[idx] = { ...despesas[idx], ...payload };
     editingDespesa = null;
