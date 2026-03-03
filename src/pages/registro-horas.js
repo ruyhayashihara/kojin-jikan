@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
+import { classifyDesconto } from '../classify-desconto.js';
 
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const DIAS_SEMANA_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -222,7 +223,7 @@ export async function renderRegistroHoras(app) {
     debouncedSaveResumo();
   }
 
-  // Save desconto to DB
+  // Save desconto to DB + sync with despesa
   async function saveDesconto(desconto, index) {
     const descEl = document.querySelectorAll('.desconto-desc')[index];
     const tipoEl = document.querySelectorAll('.desconto-tipo')[index];
@@ -238,14 +239,73 @@ export async function renderRegistroHoras(app) {
       valor: parseFloat(valorEl.value) || 0,
     };
 
+    let descontoId;
     if (desconto.id) {
       await supabase.from('desconto_mensal').update(payload).eq('id', desconto.id);
       descontos[index] = { ...desconto, ...payload };
+      descontoId = desconto.id;
     } else {
       const { data } = await supabase.from('desconto_mensal').insert(payload).select().single();
-      if (data) descontos[index] = data;
+      if (data) {
+        descontos[index] = data;
+        descontoId = data.id;
+      }
     }
+
+    // Sync with despesa table
+    if (descontoId && payload.descricao && payload.valor > 0) {
+      await syncDescontoToDespesa(descontoId, payload);
+    }
+
     updateCalculations();
+  }
+
+  // Sync desconto → despesa (create or update)
+  async function syncDescontoToDespesa(descontoId, descontoPayload) {
+    try {
+      // Classify the desconto description into an NTA category
+      const category = await classifyDesconto(descontoPayload.descricao);
+
+      // Calculate last day of the month for the expense date
+      const lastDay = new Date(descontoPayload.ano, descontoPayload.mes, 0).getDate();
+      const dateStr = `${descontoPayload.ano}-${String(descontoPayload.mes).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      const despesaPayload = {
+        usuario_id: userId,
+        desconto_mensal_id: descontoId,
+        data_recibo: dateStr,
+        descricao: descontoPayload.descricao,
+        estabelecimento: 'Desconto salarial',
+        valor: descontoPayload.valor,
+        valor_dedutivel: descontoPayload.valor,
+        categoria_code: category.code,
+        categoria_nome: category.nome,
+        campo_formulario: category.campo,
+        classificacao_automatica: true,
+        revisado_usuario: false,
+        ano_fiscal: descontoPayload.ano,
+        mes: descontoPayload.mes,
+      };
+
+      // Check if a despesa already exists for this desconto
+      const { data: existing } = await supabase
+        .from('despesa')
+        .select('id')
+        .eq('desconto_mensal_id', descontoId)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing despesa
+        await supabase.from('despesa').update(despesaPayload).eq('id', existing.id);
+        console.log(`[sync] Updated despesa for desconto ${descontoId} → ${category.code} ${category.nome} (${category.method})`);
+      } else {
+        // Create new despesa
+        await supabase.from('despesa').insert(despesaPayload);
+        console.log(`[sync] Created despesa for desconto ${descontoId} → ${category.code} ${category.nome} (${category.method})`);
+      }
+    } catch (e) {
+      console.error('[sync] Error syncing desconto to despesa:', e);
+    }
   }
 
   const debouncedSaveDesconto = debounce(saveDesconto, 500);
@@ -366,16 +426,16 @@ export async function renderRegistroHoras(app) {
       let actionHtml = '';
       if (hasData) {
         actionHtml = `
-          <div class="row-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-            <button class="btn-icon btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 0.5rem; padding: 0.25rem;">
+          <div class="row-actions" style="display: flex; justify-content: center; align-items: center;">
+            <button class="btn-icon btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 0.25rem; display: flex; align-items: center; justify-content: center;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
             </button>
           </div>
         `;
       } else {
         actionHtml = `
-          <div class="row-actions" style="display: flex; justify-content: flex-end;">
-            <span style="color: #3b82f6; font-size: 1.25rem; font-weight: bold; margin-right: 0.25rem;">+</span>
+          <div class="row-actions" style="display: flex; justify-content: center; align-items: center;">
+            <span style="color: #3b82f6; font-size: 1.25rem; font-weight: bold; line-height: 1;">+</span>
           </div>
         `;
       }
@@ -392,7 +452,7 @@ export async function renderRegistroHoras(app) {
           <td class="col-time" style="text-align: center;">${txtIntervalo}</td>
           <td class="col-total" style="text-align: center; color: var(--color-text-muted);">${txtTotal}</td>
           <td class="col-subtotal" style="text-align: center;">${txtSubtotal}</td>
-          <td class="col-acoes" style="text-align: right; padding-right: 1rem; width: 80px;">${actionHtml}</td>
+          <td class="col-acoes" style="text-align: center; width: 80px;">${actionHtml}</td>
         </tr>
       `;
     }
@@ -446,7 +506,7 @@ export async function renderRegistroHoras(app) {
                     <th class="col-time" style="text-align: center;">Intervalo</th>
                     <th class="col-total" style="text-align: center;">Total</th>
                     <th class="col-subtotal" style="text-align: center;">¥ Subtotal</th>
-                    <th class="col-acoes" style="text-align: right; padding-right: 1rem;">Ações</th>
+                    <th class="col-acoes" style="text-align: center;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="timesheet-body">

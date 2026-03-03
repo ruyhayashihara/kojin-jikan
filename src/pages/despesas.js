@@ -69,10 +69,51 @@ export async function renderDespesas(app) {
 
   // --- Delete ---
   async function deleteDespesa(id) {
-    if (!confirm('Excluir esta despesa?')) return;
-    await supabase.from('despesa').delete().eq('id', id);
+    console.log('[despesa] deleteDespesa called with id:', id);
+
+    // Custom confirmation modal instead of window.confirm
+    const confirmed = await showConfirmModal('Excluir esta despesa?', 'Esta ação não pode ser desfeita.');
+    if (!confirmed) return;
+
+    const { error } = await supabase.from('despesa').delete().eq('id', id);
+    if (error) {
+      console.error('[despesa] Error deleting:', error);
+      return;
+    }
+    console.log('[despesa] Deleted successfully:', id);
     despesas = despesas.filter(d => d.id !== id);
     renderContent();
+  }
+
+  // Custom confirm modal (replaces window.confirm)
+  function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);';
+      overlay.innerHTML = `
+        <div style="background:var(--color-bg-card,#1e1e1e);border:1px solid var(--color-border,#333);border-radius:1rem;padding:1.5rem;max-width:380px;width:90%;color:var(--color-text,#f3f4f6);box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+          <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">${title}</h3>
+          <p style="margin:0 0 1.5rem;color:var(--color-text-muted,#9ca3af);font-size:0.9rem;">${message}</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <button id="confirm-cancel" style="background:transparent;color:var(--color-text,#f3f4f6);border:1px solid var(--color-border,#404040);border-radius:0.5rem;padding:0.6rem;font-weight:600;cursor:pointer;">キャンセル</button>
+            <button id="confirm-ok" style="background:#ef4444;color:#fff;border:none;border-radius:0.5rem;padding:0.6rem;font-weight:600;cursor:pointer;">削除する</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#confirm-cancel').addEventListener('click', () => {
+        overlay.remove();
+        resolve(false);
+      });
+      overlay.querySelector('#confirm-ok').addEventListener('click', () => {
+        overlay.remove();
+        resolve(true);
+      });
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) { overlay.remove(); resolve(false); }
+      });
+    });
   }
 
   // --- Save (edit modal) ---
@@ -335,8 +376,14 @@ export async function renderDespesas(app) {
         renderContent();
       });
     });
-    document.querySelectorAll('.btn-delete-despesa-item').forEach(btn => {
-      btn.addEventListener('click', () => deleteDespesa(btn.dataset.id));
+    const deleteButtons = document.querySelectorAll('.btn-delete-despesa-item');
+    console.log('[despesa] Found delete buttons:', deleteButtons.length);
+    deleteButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('[despesa] Delete button clicked, id:', btn.dataset.id);
+        deleteDespesa(btn.dataset.id);
+      });
     });
     document.getElementById('btn-close-modal')?.addEventListener('click', () => { editingDespesa = null; renderContent(); });
     document.getElementById('btn-cancel-edit')?.addEventListener('click', () => { editingDespesa = null; renderContent(); });

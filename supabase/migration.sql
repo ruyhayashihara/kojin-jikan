@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS despesa (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   recibo_id UUID REFERENCES recibo(id) ON DELETE SET NULL,
+  desconto_mensal_id UUID REFERENCES desconto_mensal(id) ON DELETE CASCADE,
   data_recibo DATE,
   descricao TEXT,
   estabelecimento TEXT,
