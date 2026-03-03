@@ -158,10 +158,10 @@ export async function renderDashboard(app) {
               <thead>
                 <tr>
                   <th>Mês</th>
-                  <th>Hs</th>
-                  <th>Bruto</th>
-                  <th>Desc.</th>
-                  <th>Líq.</th>
+                  <th class="col-num">Hs</th>
+                  <th class="col-num">Bruto</th>
+                  <th class="col-num">Desc.</th>
+                  <th class="col-num">Líq.</th>
                 </tr>
               </thead>
               <tbody>
