@@ -89,14 +89,15 @@ export async function renderDespesas(app) {
   function showConfirmModal(title, message) {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);';
+      overlay.className = 'modal-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);';
       overlay.innerHTML = `
-        <div style="background:var(--color-bg-card,#1e1e1e);border:1px solid var(--color-border,#333);border-radius:1rem;padding:1.5rem;max-width:380px;width:90%;color:var(--color-text,#f3f4f6);box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-          <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">${title}</h3>
-          <p style="margin:0 0 1.5rem;color:var(--color-text-muted,#9ca3af);font-size:0.9rem;">${message}</p>
+        <div class="card" style="max-width:380px;width:90%;padding:1.5rem;">
+          <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">⚠️ ${title}</h3>
+          <p style="margin:0 0 1.5rem;color:var(--color-text-muted);font-size:0.9rem;">${message}</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-            <button id="confirm-cancel" style="background:transparent;color:var(--color-text,#f3f4f6);border:1px solid var(--color-border,#404040);border-radius:0.5rem;padding:0.6rem;font-weight:600;cursor:pointer;">キャンセル</button>
-            <button id="confirm-ok" style="background:#ef4444;color:#fff;border:none;border-radius:0.5rem;padding:0.6rem;font-weight:600;cursor:pointer;">削除する</button>
+            <button id="confirm-cancel" class="btn btn-outline">キャンセル</button>
+            <button id="confirm-ok" style="background:#ef4444;color:#fff;border:none;border-radius:var(--radius-md);padding:0.6rem;font-weight:600;cursor:pointer;">削除する</button>
           </div>
         </div>
       `;
