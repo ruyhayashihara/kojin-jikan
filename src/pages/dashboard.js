@@ -61,7 +61,10 @@ export async function renderDashboard(app) {
       <div class="chart-bar-group">
         <div class="chart-bar-container">
           <div class="chart-bar ${isNeg ? 'chart-bar-negative' : ''}" style="height: ${Math.max(heightPct, 2)}%" title="¥${val.toLocaleString('ja-JP')}">
-            ${val !== 0 ? `<span class="chart-bar-value">${val >= 1000 ? '¥' + Math.round(val / 1000) + 'k' : '¥' + val}</span>` : ''}
+            ${val !== 0 ? `
+              <span class="chart-bar-value chart-bar-value-full">¥${val.toLocaleString('ja-JP')}</span>
+              <span class="chart-bar-value chart-bar-value-short">${val >= 1000 ? '¥' + Math.round(val / 1000) + 'k' : '¥' + val}</span>
+            ` : ''}
           </div>
         </div>
         <span class="chart-label">${label}</span>

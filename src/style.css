@@ -1744,6 +1744,15 @@ a:hover {
   transition: opacity var(--transition-fast);
 }
 
+/* Desktop: show full values, hide abbreviated */
+.chart-bar-value-full {
+  display: inline;
+}
+
+.chart-bar-value-short {
+  display: none;
+}
+
 .chart-bar:hover .chart-bar-value {
   opacity: 1;
 }
@@ -1940,6 +1949,15 @@ a:hover {
 
   .chart-container {
     height: 160px;
+  }
+
+  /* Mobile: show abbreviated, hide full */
+  .chart-bar-value-full {
+    display: none;
+  }
+
+  .chart-bar-value-short {
+    display: inline;
   }
 
   .quick-actions-grid {
