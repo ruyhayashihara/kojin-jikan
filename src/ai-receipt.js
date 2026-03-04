@@ -55,7 +55,49 @@ function parseDataUrl(dataUrl) {
 }
 
 /**
- * Processa a imagem do recibo com Gemini Flash API
+ * Extrai o texto da resposta do Gemini (suporte a thinking models)
+ */
+function extractTextFromGemini(result) {
+    const parts = result.candidates?.[0]?.content?.parts || [];
+
+    // Para modelos com thinking: pegar a última parte que NÃO é thought
+    for (let i = parts.length - 1; i >= 0; i--) {
+        if (parts[i].text && !parts[i].thought) {
+            return parts[i].text;
+        }
+    }
+
+    // Fallback: pegar qualquer texto disponível
+    for (const part of parts) {
+        if (part.text) return part.text;
+    }
+
+    return '';
+}
+
+/**
+ * Extrai JSON de uma string (remove markdown code fences)
+ */
+function extractJSON(text) {
+    // Remove blocos de código markdown
+    let clean = text;
+    clean = clean.replace(/```json\n?/gi, '');
+    clean = clean.replace(/```\n?/g, '');
+    clean = clean.trim();
+
+    // Encontra o objeto JSON
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+
+    if (start === -1 || end === -1 || end <= start) {
+        return null;
+    }
+
+    return clean.substring(start, end + 1);
+}
+
+/**
+ * Processa a imagem do recibo com Gemini API
  * @param {string} imageDataUrl - Imagem em Base64 data URL
  * @returns {Promise<object>} Dados extraídos do recibo
  */
@@ -66,9 +108,9 @@ export async function processReceiptWithAI(imageDataUrl) {
 
     const { mimeType, base64 } = parseDataUrl(imageDataUrl);
 
-    console.log('[ai-receipt] Calling Gemini Flash API...');
+    console.log('[ai-receipt] Calling Gemini API...');
 
-    const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(GEMINI_URL + '?key=' + GEMINI_API_KEY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,24 +130,22 @@ export async function processReceiptWithAI(imageDataUrl) {
     if (!response.ok) {
         const errorText = await response.text();
         console.error('[ai-receipt] Gemini API error:', errorText);
-        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+        throw new Error('Gemini API error (' + response.status + '): ' + errorText);
     }
 
     const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = extractTextFromGemini(result);
 
-    console.log('[ai-receipt] Raw Gemini response:', text);
+    console.log('[ai-receipt] Gemini response text:', text);
 
-    // Parse JSON from response (handle possible markdown wrapping)
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    const jsonStr = extractJSON(text);
 
-    if (!jsonMatch) {
-        console.error('[ai-receipt] Could not parse JSON from:', text);
+    if (!jsonStr) {
+        console.error('[ai-receipt] Could not extract JSON from:', text);
         throw new Error('Não foi possível interpretar a resposta da IA');
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonStr);
 
     // Validate and ensure all fields exist
     const validated = {
