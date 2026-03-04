@@ -1,10 +1,29 @@
 /**
- * Módulo de processamento de recibos com IA
- * Configuração do agente para extração de dados de recibos japoneses
+ * Módulo de processamento de recibos com IA (Gemini Flash)
+ * Extrai dados de recibos japoneses e classifica em categorias NTA
  */
 
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
 // Prompt do agente de IA para processamento de recibos
-export const AI_RECEIPT_PROMPT = `Você é especialista em contabilidade fiscal japonesa. Ao receber a imagem de um recibo, extraia: data, estabelecimento, valor total, valor do consumo tax (消費税), e número de registro Invoice (適格請求書登録番号) se houver. Em seguida classifique a despesa em uma das 16 categorias oficiais da NTA japonesa. Responda sempre em JSON com os campos: dataRecibo, estabelecimento, valorTotal, valorConsumotax, numeroInvoice, categoriaCode, categoriaNome, confianca (0 a 1) e justificativa em português.`;
+export const AI_RECEIPT_PROMPT = `You are an expert in Japanese tax accounting (確定申告). Given this receipt image, extract the following and respond ONLY with valid JSON (no markdown, no code blocks):
+
+1. "dataRecibo": date on receipt in YYYY-MM-DD format. If unclear, use today's date.
+2. "estabelecimento": store/business name exactly as shown on receipt
+3. "valorTotal": total amount in yen (number only, no ¥ symbol)
+4. "valorConsumotax": consumption tax (消費税) amount if visible (number, 0 if not found)
+5. "numeroInvoice": Invoice registration number (適格請求書登録番号, format T + 13 digits) if visible, empty string if not
+6. "categoriaCode": classify into one of these NTA categories (2-digit code string):
+   01=租税公課, 02=荷造運賃, 03=水道光熱費, 04=旅費交通費, 05=通信費,
+   06=広告宣伝費, 07=接待交際費, 08=損害保険料, 09=修繕費, 10=消耗品費,
+   11=減価償却費, 12=給料賃金, 13=外注工賃, 14=地代家賃, 15=利子割引料, 16=雑費
+7. "categoriaNome": Japanese name of the selected category
+8. "confianca": your confidence from 0.0 to 1.0
+9. "justificativa": brief explanation in Portuguese of why this category was chosen
+
+Example response:
+{"dataRecibo":"2026-03-01","estabelecimento":"セブンイレブン 新宿店","valorTotal":1580,"valorConsumotax":144,"numeroInvoice":"T1234567890123","categoriaCode":"10","categoriaNome":"消耗品費","confianca":0.92,"justificativa":"Compra em loja de conveniência classificada como material de consumo por se tratar de itens de uso diário."}`;
 
 // 16 categorias oficiais da NTA
 export const NTA_CATEGORIAS = [
@@ -27,42 +46,82 @@ export const NTA_CATEGORIAS = [
 ];
 
 /**
- * Processa a imagem do recibo com IA
+ * Extrai o base64 e mimeType de um data URL
+ */
+function parseDataUrl(dataUrl) {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) throw new Error('Invalid data URL format');
+    return { mimeType: match[1], base64: match[2] };
+}
+
+/**
+ * Processa a imagem do recibo com Gemini Flash API
  * @param {string} imageDataUrl - Imagem em Base64 data URL
  * @returns {Promise<object>} Dados extraídos do recibo
  */
 export async function processReceiptWithAI(imageDataUrl) {
-    // TODO: Integrar com API de IA real (OpenAI Vision, Google Gemini, ou Base44)
-    // Por enquanto, simula o processamento para demonstração do fluxo
-    //
-    // Para integrar com OpenAI:
-    // const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     model: 'gpt-4o',
-    //     messages: [
-    //       { role: 'system', content: AI_RECEIPT_PROMPT },
-    //       { role: 'user', content: [{ type: 'image_url', image_url: { url: imageDataUrl } }] }
-    //     ]
-    //   })
-    // });
+    if (!GEMINI_API_KEY) {
+        throw new Error('VITE_GEMINI_API_KEY não configurada. Adicione ao arquivo .env.local');
+    }
 
-    // Simular delay de processamento
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const { mimeType, base64 } = parseDataUrl(imageDataUrl);
 
-    // Resposta simulada para demonstração
-    return {
-        dataRecibo: new Date().toISOString().split('T')[0],
-        estabelecimento: 'コンビニ・サンプル',
-        valorTotal: 1580,
-        valorConsumotax: 144,
-        numeroInvoice: 'T1234567890123',
-        categoriaCode: '10',
-        categoriaNome: '消耗品費',
-        confianca: 0.85,
-        justificativa: 'Recibo de compra em loja de conveniência. Classificado como material de consumo (消耗品費) por se tratar de itens de uso diário para o trabalho.'
+    console.log('[ai-receipt] Calling Gemini Flash API...');
+
+    const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{
+                parts: [
+                    { text: AI_RECEIPT_PROMPT },
+                    { inline_data: { mime_type: mimeType, data: base64 } }
+                ]
+            }],
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 1024,
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ai-receipt] Gemini API error:', errorText);
+        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    console.log('[ai-receipt] Raw Gemini response:', text);
+
+    // Parse JSON from response (handle possible markdown wrapping)
+    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+        console.error('[ai-receipt] Could not parse JSON from:', text);
+        throw new Error('Não foi possível interpretar a resposta da IA');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Validate and ensure all fields exist
+    const validated = {
+        dataRecibo: parsed.dataRecibo || new Date().toISOString().split('T')[0],
+        estabelecimento: parsed.estabelecimento || 'Desconhecido',
+        valorTotal: Number(parsed.valorTotal) || 0,
+        valorConsumotax: Number(parsed.valorConsumotax) || 0,
+        numeroInvoice: parsed.numeroInvoice || '',
+        categoriaCode: String(parsed.categoriaCode || '16').padStart(2, '0'),
+        categoriaNome: parsed.categoriaNome || '雑費',
+        confianca: Math.min(Math.max(Number(parsed.confianca) || 0.5, 0), 1),
+        justificativa: parsed.justificativa || 'Classificação automática por IA.',
     };
+
+    console.log('[ai-receipt] Parsed result:', validated);
+    return validated;
 }
 
 /**
