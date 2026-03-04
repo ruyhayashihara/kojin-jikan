@@ -11,6 +11,19 @@ export async function renderRecibos(app) {
   let currentStep = 1;
   let imageDataUrl = null;
   let aiResult = null;
+  let userGeminiKey = null;
+
+  // Busca o perfil do usuário para pegar a chave do Gemini
+  try {
+    const { data } = await supabase
+      .from('perfil_usuario')
+      .select('gemini_api_key')
+      .eq('id', user.id)
+      .single();
+    userGeminiKey = data?.gemini_api_key || null;
+  } catch (e) {
+    // Ignora erro se perfil não existir
+  }
 
 
   // Build NTA category select options
@@ -42,6 +55,11 @@ export async function renderRecibos(app) {
   function renderStep1() {
     return `
       <div class="wizard-content">
+        ${!userGeminiKey ? `
+          <div class="alert alert-warning" style="margin-bottom: var(--space-4);">
+            <strong>Atenção:</strong> Você precisa configurar sua própria chave de API do Gemini para utilizar a leitura automática de recibos. <br><a href="#/configuracoes" style="text-decoration: underline; color: inherit; font-weight: 500;">Clique aqui para ir às Configurações</a>.
+          </div>
+        ` : ''}
         ${!imageDataUrl ? `
           <div class="capture-zone">
             <div class="capture-icon">📷</div>
@@ -69,7 +87,7 @@ export async function renderRecibos(app) {
               <img src="${imageDataUrl}" alt="Preview do recibo" class="preview-image" id="preview-img" />
             </div>
             <div class="preview-actions">
-              <button class="btn btn-primary btn-lg" id="btn-process">
+              <button class="btn btn-primary btn-lg" id="btn-process" ${!userGeminiKey ? 'disabled title="Configure sua API Key nas Configurações"' : ''}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>
                 Processar com IA
               </button>
@@ -239,7 +257,7 @@ export async function renderRecibos(app) {
     }
 
     try {
-      aiResult = await processReceiptWithAI(imageDataUrl);
+      aiResult = await processReceiptWithAI(imageDataUrl, userGeminiKey);
       currentStep = 2;
       render();
     } catch (err) {

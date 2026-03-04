@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS perfil_usuario (
   numero_invoice TEXT,
   my_number TEXT,
   ano_fiscal_atual INTEGER DEFAULT EXTRACT(YEAR FROM NOW()),
+  gemini_api_key TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -91,6 +91,22 @@ export async function renderConfiguracoes(app) {
               </div>
             </div>
 
+            <!-- NOVA SEÇÃO: INTELIGÊNCIA ARTIFICIAL -->
+            <div class="form-section-divider" style="margin: var(--space-6) 0 var(--space-4); border-top: 1px solid var(--color-border); padding-top: var(--space-4);">
+              <h2>Inteligência Artificial (Recibos)</h2>
+              <p style="font-size: var(--font-size-sm); color: var(--color-text-light); margin-bottom: var(--space-4);">
+                Para utilizar a leitura automática de recibos OCR, você precisa de uma chave gratuita do Google Gemini Flash.
+                <br>
+                1. Acesse o <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Google AI Studio</a> com sua conta Google.<br>
+                2. Clique em <strong>"Create API Key"</strong> e copie o código gerado.<br>
+                3. Cole sua chave no campo abaixo.
+              </p>
+              <div class="form-group">
+                <label for="cfg-gemini-key">Gemini API Key</label>
+                <input type="password" id="cfg-gemini-key" placeholder="AIzaSy..." value="${perfil?.gemini_api_key || ''}" />
+              </div>
+            </div>
+
             <div class="form-actions">
               <button type="submit" class="btn btn-primary" id="config-save-btn">
                 Salvar Configurações
@@ -136,6 +152,7 @@ export async function renderConfiguracoes(app) {
       numero_invoice: document.getElementById('cfg-numero-invoice').value.trim(),
       my_number: document.getElementById('cfg-my-number').value.trim(),
       ano_fiscal_atual: parseInt(document.getElementById('cfg-ano-fiscal').value) || currentYear,
+      gemini_api_key: document.getElementById('cfg-gemini-key').value.trim(),
     };
 
     try {

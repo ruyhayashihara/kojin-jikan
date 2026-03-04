@@ -99,18 +99,21 @@ function extractJSON(text) {
 /**
  * Processa a imagem do recibo com Gemini API
  * @param {string} imageDataUrl - Imagem em Base64 data URL
+ * @param {string|null} userApiKey - Chave de API do Gemini do usuário (opcional)
  * @returns {Promise<object>} Dados extraídos do recibo
  */
-export async function processReceiptWithAI(imageDataUrl) {
-    if (!GEMINI_API_KEY) {
-        throw new Error('VITE_GEMINI_API_KEY não configurada. Adicione ao arquivo .env.local');
+export async function processReceiptWithAI(imageDataUrl, userApiKey = null) {
+    const apiKeyToUse = userApiKey || GEMINI_API_KEY;
+
+    if (!apiKeyToUse) {
+        throw new Error('Chave de API do Gemini não configurada. Adicione sua chave na página de Configurações.');
     }
 
     const { mimeType, base64 } = parseDataUrl(imageDataUrl);
 
     console.log('[ai-receipt] Calling Gemini API...');
 
-    const response = await fetch(GEMINI_URL + '?key=' + GEMINI_API_KEY, {
+    const response = await fetch(GEMINI_URL + '?key=' + apiKeyToUse, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
