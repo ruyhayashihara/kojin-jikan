@@ -4,7 +4,7 @@
  */
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 
 // Prompt do agente de IA para processamento de recibos
 export const AI_RECEIPT_PROMPT = `You are an expert in Japanese tax accounting (確定申告). Given this receipt image, extract the following and respond ONLY with valid JSON (no markdown, no code blocks):
