@@ -182,6 +182,8 @@ CREATE TABLE IF NOT EXISTS recibo (
   estabelecimento TEXT,
   valor_total NUMERIC(12,2) DEFAULT 0,
   valor_consumo_tax NUMERIC(12,2) DEFAULT 0,
+  valor_consumo_tax_8 NUMERIC(12,2) DEFAULT 0,
+  valor_consumo_tax_10 NUMERIC(12,2) DEFAULT 0,
   numero_invoice TEXT,
   status_processamento TEXT DEFAULT 'pendente'
     CHECK (status_processamento IN ('pendente', 'processado', 'revisado')),

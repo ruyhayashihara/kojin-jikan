@@ -132,8 +132,12 @@ export async function renderRecibos(app) {
                 <input type="number" id="rev-valor" value="${aiResult.valorTotal || ''}" step="0.01" />
               </div>
               <div class="form-group">
-                <label for="rev-tax">消費税 — Consumo Tax (¥)</label>
-                <input type="number" id="rev-tax" value="${aiResult.valorConsumotax || ''}" step="0.01" />
+                <label for="rev-tax-8">消費税 8% — 軽減税率 (¥)</label>
+                <input type="number" id="rev-tax-8" value="${aiResult.valorConsumotax8 || ''}" step="1" />
+              </div>
+              <div class="form-group">
+                <label for="rev-tax-10">消費税 10% — 標準税率 (¥)</label>
+                <input type="number" id="rev-tax-10" value="${aiResult.valorConsumotax10 || ''}" step="1" />
               </div>
               <div class="form-group form-group-full">
                 <label for="rev-invoice">適格請求書登録番号 — Número Invoice (opcional)</label>
@@ -273,7 +277,9 @@ export async function renderRecibos(app) {
     const dataRecibo = document.getElementById('rev-data')?.value || document.querySelector('#class-categoria')?.closest('.wizard-content')?.querySelector('#rev-data')?.value || aiResult.dataRecibo;
     const estabelecimento = document.getElementById('rev-estabelecimento')?.value || aiResult.estabelecimento;
     const valorTotal = parseFloat(document.getElementById('rev-valor')?.value) || aiResult.valorTotal;
-    const valorTax = parseFloat(document.getElementById('rev-tax')?.value) || aiResult.valorConsumotax;
+    const valorTax8 = parseFloat(document.getElementById('rev-tax-8')?.value) || aiResult.valorConsumotax8;
+    const valorTax10 = parseFloat(document.getElementById('rev-tax-10')?.value) || aiResult.valorConsumotax10;
+    const valorTax = (valorTax8 || 0) + (valorTax10 || 0);
     const numInvoice = document.getElementById('rev-invoice')?.value || aiResult.numeroInvoice;
     const catCode = document.getElementById('class-categoria')?.value || aiResult.categoriaCode;
     const justificativa = document.getElementById('class-justificativa')?.value || aiResult.justificativa;
@@ -289,6 +295,8 @@ export async function renderRecibos(app) {
       estabelecimento: estabelecimento,
       valor_total: valorTotal,
       valor_consumo_tax: valorTax,
+      valor_consumo_tax_8: valorTax8,
+      valor_consumo_tax_10: valorTax10,
       numero_invoice: numInvoice,
       status_processamento: status,
       confianca_ocr: confianca,
@@ -363,7 +371,9 @@ export async function renderRecibos(app) {
       aiResult.dataRecibo = document.getElementById('rev-data')?.value || aiResult.dataRecibo;
       aiResult.estabelecimento = document.getElementById('rev-estabelecimento')?.value || aiResult.estabelecimento;
       aiResult.valorTotal = parseFloat(document.getElementById('rev-valor')?.value) || aiResult.valorTotal;
-      aiResult.valorConsumotax = parseFloat(document.getElementById('rev-tax')?.value) || aiResult.valorConsumotax;
+      aiResult.valorConsumotax8 = parseFloat(document.getElementById('rev-tax-8')?.value) || aiResult.valorConsumotax8;
+      aiResult.valorConsumotax10 = parseFloat(document.getElementById('rev-tax-10')?.value) || aiResult.valorConsumotax10;
+      aiResult.valorConsumotax = (aiResult.valorConsumotax8 || 0) + (aiResult.valorConsumotax10 || 0);
       aiResult.numeroInvoice = document.getElementById('rev-invoice')?.value || aiResult.numeroInvoice;
       currentStep = 3;
       render();

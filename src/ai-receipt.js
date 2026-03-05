@@ -12,18 +12,21 @@ export const AI_RECEIPT_PROMPT = `You are an expert in Japanese tax accounting (
 1. "dataRecibo": date on receipt in YYYY-MM-DD format. If unclear, use today's date.
 2. "estabelecimento": store/business name exactly as shown on receipt
 3. "valorTotal": total amount in yen (number only, no ¥ symbol)
-4. "valorConsumotax": consumption tax (消費税) amount if visible (number, 0 if not found)
-5. "numeroInvoice": Invoice registration number (適格請求書登録番号, format T + 13 digits) if visible, empty string if not
-6. "categoriaCode": classify into one of these NTA categories (2-digit code string):
+4. "valorConsumotax8": consumption tax amount at 8% reduced rate (軽減税率 — food, drinks, newspapers). 0 if not found or not applicable.
+5. "valorConsumotax10": consumption tax amount at 10% standard rate (標準税率 — all other items). 0 if not found or not applicable.
+6. "numeroInvoice": Invoice registration number (適格請求書登録番号, format T + 13 digits) if visible, empty string if not
+7. "categoriaCode": classify into one of these NTA categories (2-digit code string):
    01=租税公課, 02=荷造運賃, 03=水道光熱費, 04=旅費交通費, 05=通信費,
    06=広告宣伝費, 07=接待交際費, 08=損害保険料, 09=修繕費, 10=消耗品費,
    11=減価償却費, 12=給料賃金, 13=外注工賃, 14=地代家賃, 15=利子割引料, 16=雑費
-7. "categoriaNome": Japanese name of the selected category
-8. "confianca": your confidence from 0.0 to 1.0
-9. "justificativa": brief explanation in Portuguese of why this category was chosen
+8. "categoriaNome": Japanese name of the selected category
+9. "confianca": your confidence from 0.0 to 1.0
+10. "justificativa": brief explanation in Portuguese of why this category was chosen
+
+IMPORTANT: Japanese receipts often show tax breakdown as 8%対象 (8% items) and 10%対象 (10% items). Extract both separately. If only one total tax is shown without breakdown, put it in valorConsumotax10 (standard rate) by default.
 
 Example response:
-{"dataRecibo":"2026-03-01","estabelecimento":"セブンイレブン 新宿店","valorTotal":1580,"valorConsumotax":144,"numeroInvoice":"T1234567890123","categoriaCode":"10","categoriaNome":"消耗品費","confianca":0.92,"justificativa":"Compra em loja de conveniência classificada como material de consumo por se tratar de itens de uso diário."}`;
+{"dataRecibo":"2026-03-01","estabelecimento":"セブンイレブン 新宿店","valorTotal":1580,"valorConsumotax8":64,"valorConsumotax10":100,"numeroInvoice":"T1234567890123","categoriaCode":"10","categoriaNome":"消耗品費","confianca":0.92,"justificativa":"Compra em loja de conveniência classificada como material de consumo por se tratar de itens de uso diário."}`;
 
 // 16 categorias oficiais da NTA
 export const NTA_CATEGORIAS = [
@@ -155,7 +158,9 @@ export async function processReceiptWithAI(imageDataUrl, userApiKey = null) {
         dataRecibo: parsed.dataRecibo || new Date().toISOString().split('T')[0],
         estabelecimento: parsed.estabelecimento || 'Desconhecido',
         valorTotal: Number(parsed.valorTotal) || 0,
-        valorConsumotax: Number(parsed.valorConsumotax) || 0,
+        valorConsumotax8: Number(parsed.valorConsumotax8) || 0,
+        valorConsumotax10: Number(parsed.valorConsumotax10) || 0,
+        valorConsumotax: (Number(parsed.valorConsumotax8) || 0) + (Number(parsed.valorConsumotax10) || 0),
         numeroInvoice: parsed.numeroInvoice || '',
         categoriaCode: String(parsed.categoriaCode || '16').padStart(2, '0'),
         categoriaNome: parsed.categoriaNome || '雑費',
