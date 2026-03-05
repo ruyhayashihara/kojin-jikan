@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS perfil_usuario (
   moeda TEXT DEFAULT '¥',
   valor_hora_padrao NUMERIC(10,2) DEFAULT 0,
   regime_declaracao TEXT CHECK (regime_declaracao IN ('青色 Azul', '白色 Branco')),
+  regime_por_ano JSONB DEFAULT '{}',
   registrado_invoice BOOLEAN DEFAULT FALSE,
   numero_invoice TEXT,
   my_number TEXT,

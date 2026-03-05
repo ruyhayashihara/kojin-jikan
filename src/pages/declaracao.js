@@ -5,6 +5,11 @@ import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+function getRegimeForYear(perfil, year) {
+  const porAno = perfil.regime_por_ano || {};
+  return porAno[String(year)] || perfil.regime_declaracao || '';
+}
+
 export async function renderDeclaracao(app) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { navigate('/login'); return; }
@@ -12,6 +17,7 @@ export async function renderDeclaracao(app) {
   const currentYear = new Date().getFullYear();
   let selectedYear = currentYear;
   let perfil = {};
+  let initialLoadDone = false;
   let resumos = [];
   let despesas = [];
   let categoryOverrides = {}; // code -> overridden value
@@ -35,7 +41,14 @@ export async function renderDeclaracao(app) {
     // Profile
     try {
       const { data } = await supabase.from('perfil_usuario').select('*').eq('id', user.id).single();
-      if (data) perfil = data;
+      if (data) {
+        perfil = data;
+        // On first load, sync selectedYear with the profile's ano_fiscal_atual
+        if (!initialLoadDone && perfil.ano_fiscal_atual) {
+          selectedYear = perfil.ano_fiscal_atual;
+          initialLoadDone = true;
+        }
+      }
     } catch (e) { }
 
     // Resumos mensais
@@ -116,7 +129,8 @@ export async function renderDeclaracao(app) {
     const rec = calcReceitas();
     const { cats, totalDedutivel } = calcCategoryExpenses();
     const lucro = rec.receitaLiquida - totalDedutivel;
-    const regime = perfil.regime_declaracao === 'azul' ? '青色申告 (Azul)' : '白色申告 (Branco)';
+    const regimeVal = getRegimeForYear(perfil, selectedYear);
+    const regime = regimeVal === '青色 Azul' ? '青色申告 (Azul)' : '白色申告 (Branco)';
 
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Declaração Fiscal ${selectedYear} — マイ個人</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1e293b;font-size:14px}
@@ -130,7 +144,7 @@ export async function renderDeclaracao(app) {
     .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
     .badge-blue{background:#dbeafe;color:#2563eb}.badge-green{background:#dcfce7;color:#16a34a}</style></head><body>
     <h1>Declaração Fiscal ${selectedYear} — 確定申告</h1>
-    <p class="meta">Gerado por マイ個人 em ${new Date().toLocaleDateString('pt-BR')} · Regime: <span class="badge ${perfil.regime_declaracao === 'azul' ? 'badge-blue' : 'badge-green'}">${regime}</span></p>
+    <p class="meta">Gerado por マイ個人 em ${new Date().toLocaleDateString('pt-BR')} · Regime: <span class="badge ${regimeVal === '青色 Azul' ? 'badge-blue' : 'badge-green'}">${regime}</span></p>
     <h2>1. Resumo de Receitas</h2>
     <table><tr><td>Total de horas trabalhadas</td><td class="right bold">${rec.totalHoras}h</td></tr>
     <tr><td>Valor por hora médio</td><td class="right">¥${rec.avgValorHora.toLocaleString('ja-JP')}</td></tr>
@@ -159,7 +173,7 @@ export async function renderDeclaracao(app) {
     const rec = calcReceitas();
     const { totalDedutivel } = calcCategoryExpenses();
     const lucro = rec.receitaLiquida - totalDedutivel;
-    const regime = perfil.regime_declaracao === 'azul' ? '青色申告' : '白色申告';
+    const regime = getRegimeForYear(perfil, selectedYear) === '青色 Azul' ? '青色申告' : '白色申告';
     const text = [
       `確定申告 ${selectedYear} — マイ個人`,
       `Regime: ${regime}`,
@@ -192,9 +206,9 @@ export async function renderDeclaracao(app) {
     const rec = calcReceitas();
     const { cats, totalDedutivel } = calcCategoryExpenses();
     const lucro = rec.receitaLiquida - totalDedutivel;
-    const regime = perfil.regime_declaracao || 'branco';
-    const regimeLabel = regime === 'azul' ? '青色申告 (Azul)' : '白色申告 (Branco)';
-    const regimeClass = regime === 'azul' ? 'regime-blue' : 'regime-white';
+    const regime = getRegimeForYear(perfil, selectedYear);
+    const regimeLabel = regime === '青色 Azul' ? '青色申告 (Azul)' : '白色申告 (Branco)';
+    const regimeClass = regime === '青色 Azul' ? 'regime-blue' : 'regime-white';
 
     const yearOpts = [];
     for (let y = currentYear - 3; y <= currentYear + 1; y++) {

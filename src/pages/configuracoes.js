@@ -21,6 +21,9 @@ export async function renderConfiguracoes(app) {
   }
 
   const currentYear = new Date().getFullYear();
+  const anoFiscalAtual = perfil?.ano_fiscal_atual || currentYear;
+  const regimePorAno = perfil?.regime_por_ano || {};
+  const regimeDoAno = regimePorAno[String(anoFiscalAtual)] || perfil?.regime_declaracao || '';
 
   app.innerHTML = `
     ${renderSidebar('configuracoes')}
@@ -56,8 +59,8 @@ export async function renderConfiguracoes(app) {
                 <label for="cfg-regime">Regime de Declaração</label>
                 <select id="cfg-regime">
                   <option value="">Selecione...</option>
-                  <option value="青色 Azul" ${perfil?.regime_declaracao === '青色 Azul' ? 'selected' : ''}>青色 Azul</option>
-                  <option value="白色 Branco" ${perfil?.regime_declaracao === '白色 Branco' ? 'selected' : ''}>白色 Branco</option>
+                  <option value="青色 Azul" ${regimeDoAno === '青色 Azul' ? 'selected' : ''}>青色 Azul</option>
+                  <option value="白色 Branco" ${regimeDoAno === '白色 Branco' ? 'selected' : ''}>白色 Branco</option>
                 </select>
               </div>
 
@@ -120,6 +123,15 @@ export async function renderConfiguracoes(app) {
 
   bindSidebarEvents();
 
+  // Dynamic regime update when year changes
+  document.getElementById('cfg-ano-fiscal')?.addEventListener('change', () => {
+    const ano = document.getElementById('cfg-ano-fiscal').value;
+    const regimeSelect = document.getElementById('cfg-regime');
+    const porAno = perfil?.regime_por_ano || {};
+    const regimeParaAno = porAno[String(ano)] || '';
+    regimeSelect.value = regimeParaAno;
+  });
+
   // Invoice verification
   document.getElementById('btn-verify-invoice-cfg')?.addEventListener('click', async () => {
     const num = document.getElementById('cfg-numero-invoice')?.value;
@@ -142,16 +154,21 @@ export async function renderConfiguracoes(app) {
     btn.disabled = true;
     btn.textContent = 'Salvando...';
 
+    const anoSelecionado = parseInt(document.getElementById('cfg-ano-fiscal').value) || currentYear;
+    const regimeSelecionado = document.getElementById('cfg-regime').value;
+    const regimeAtualizado = { ...(perfil?.regime_por_ano || {}), [String(anoSelecionado)]: regimeSelecionado };
+
     const payload = {
       id: userId,
       nome: document.getElementById('cfg-nome').value.trim(),
       moeda: document.getElementById('cfg-moeda').value.trim() || '¥',
       valor_hora_padrao: parseFloat(document.getElementById('cfg-valor-hora').value) || 0,
-      regime_declaracao: document.getElementById('cfg-regime').value,
+      regime_declaracao: regimeSelecionado,
+      regime_por_ano: regimeAtualizado,
       registrado_invoice: document.getElementById('cfg-invoice').checked,
       numero_invoice: document.getElementById('cfg-numero-invoice').value.trim(),
       my_number: document.getElementById('cfg-my-number').value.trim(),
-      ano_fiscal_atual: parseInt(document.getElementById('cfg-ano-fiscal').value) || currentYear,
+      ano_fiscal_atual: anoSelecionado,
       gemini_api_key: document.getElementById('cfg-gemini-key').value.trim(),
     };
 
