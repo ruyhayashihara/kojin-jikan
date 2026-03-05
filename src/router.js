@@ -65,8 +65,8 @@ export async function handleRoute() {
       <div class="page-container">
         <div class="card" style="text-align:center;">
           <h2>Erro Crítico</h2>
-          <p>Erro ao carregar a página.</p>
-          <pre style="text-align:left; color:red; margin-top:1rem; font-size:0.8rem;">${error.message}</pre>
+          <p>Ocorreu um erro ao carregar a página. Tente novamente.</p>
+          <a href="#/login" class="btn btn-primary" style="margin-top:1rem;">Voltar ao login</a>
         </div>
       </div>
     `;

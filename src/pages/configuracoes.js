@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { verifyInvoiceNumber, renderInvoiceVerifyResult } from '../invoice-api.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
+import { escapeHtml } from '../security.js';
 
 export async function renderConfiguracoes(app) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -42,12 +43,12 @@ export async function renderConfiguracoes(app) {
             <div class="form-grid">
               <div class="form-group">
                 <label for="cfg-nome">Nome</label>
-                <input type="text" id="cfg-nome" placeholder="Seu nome completo" value="${perfil?.nome || ''}" />
+                <input type="text" id="cfg-nome" placeholder="Seu nome completo" value="${escapeHtml(perfil?.nome)}" />
               </div>
 
               <div class="form-group">
                 <label for="cfg-moeda">Moeda</label>
-                <input type="text" id="cfg-moeda" placeholder="¥" value="${perfil?.moeda || '¥'}" />
+                <input type="text" id="cfg-moeda" placeholder="¥" value="${escapeHtml(perfil?.moeda) || '¥'}" />
               </div>
 
               <div class="form-group">
@@ -74,7 +75,7 @@ export async function renderConfiguracoes(app) {
               <div class="form-group">
                 <label for="cfg-numero-invoice">Número Invoice</label>
                 <div class="invoice-field-row">
-                  <input type="text" id="cfg-numero-invoice" placeholder="T0000000000000" value="${perfil?.numero_invoice || ''}" />
+                  <input type="text" id="cfg-numero-invoice" placeholder="T0000000000000" value="${escapeHtml(perfil?.numero_invoice)}" />
                   <button type="button" class="btn btn-outline btn-sm" id="btn-verify-invoice-cfg">🔍 Verificar</button>
                 </div>
                 <div id="invoice-verify-result-cfg"></div>
@@ -85,7 +86,7 @@ export async function renderConfiguracoes(app) {
                   My Number
                   <span class="warning-badge">⚠ Dado sensível — armazene com cuidado.</span>
                 </label>
-                <input type="text" id="cfg-my-number" placeholder="マイナンバー" value="${perfil?.my_number || ''}" />
+                <input type="text" id="cfg-my-number" placeholder="マイナンバー" value="${escapeHtml(perfil?.my_number)}" />
               </div>
 
               <div class="form-group">

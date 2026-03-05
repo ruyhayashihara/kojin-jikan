@@ -262,7 +262,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 CREATE TRIGGER perfil_usuario_updated_at
   BEFORE UPDATE ON perfil_usuario

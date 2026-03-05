@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { NTA_CATEGORIAS, processReceiptWithAI, getConfiancaColor } from '../ai-receipt.js';
 import { verifyInvoiceNumber, renderInvoiceVerifyResult } from '../invoice-api.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
+import { escapeHtml } from '../security.js';
 
 export async function renderRecibos(app) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -125,7 +126,7 @@ export async function renderRecibos(app) {
               </div>
               <div class="form-group">
                 <label for="rev-estabelecimento">Estabelecimento</label>
-                <input type="text" id="rev-estabelecimento" value="${aiResult.estabelecimento || ''}" />
+                <input type="text" id="rev-estabelecimento" value="${escapeHtml(aiResult.estabelecimento)}" />
               </div>
               <div class="form-group">
                 <label for="rev-valor">Valor Total (¥)</label>
@@ -142,7 +143,7 @@ export async function renderRecibos(app) {
               <div class="form-group form-group-full">
                 <label for="rev-invoice">適格請求書登録番号 — Número Invoice (opcional)</label>
                 <div class="invoice-field-row">
-                  <input type="text" id="rev-invoice" value="${aiResult.numeroInvoice || ''}" placeholder="T0000000000000" />
+                  <input type="text" id="rev-invoice" value="${escapeHtml(aiResult.numeroInvoice)}" placeholder="T0000000000000" />
                   <button type="button" class="btn btn-outline btn-sm" id="btn-verify-invoice-recibo">🔍 Verificar</button>
                 </div>
                 <div id="invoice-verify-result-recibo"></div>

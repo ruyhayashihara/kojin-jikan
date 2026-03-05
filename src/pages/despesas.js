@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { NTA_CATEGORIAS } from '../ai-receipt.js';
 import { getInvoiceStatusIcon } from '../invoice-api.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
+import { escapeHtml } from '../security.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -225,9 +226,9 @@ export async function renderDespesas(app) {
                 <tr><td colspan="8" class="empty-state">Nenhuma despesa encontrada para os filtros selecionados.</td></tr>
               ` : filtered.map(d => `
                 <tr class="despesa-row">
-                  <td class="col-date-sm">${d.data_recibo || '—'}</td>
-                  <td class="col-estab">${d.estabelecimento || '—'}</td>
-                  <td class="col-desc-sm">${(d.descricao || '').substring(0, 50)}${(d.descricao || '').length > 50 ? '…' : ''}</td>
+                  <td class="col-date-sm">${escapeHtml(d.data_recibo) || '—'}</td>
+                  <td class="col-estab">${escapeHtml(d.estabelecimento) || '—'}</td>
+                  <td class="col-desc-sm">${escapeHtml((d.descricao || '').substring(0, 50))}${(d.descricao || '').length > 50 ? '…' : ''}</td>
                   <td class="col-cat-sm">
                     <span class="cat-badge">${d.categoria_code || '?'}</span>
                     <span class="cat-name-jp">${d.categoria_nome || ''}</span>
@@ -351,11 +352,11 @@ export async function renderDespesas(app) {
               </div>
               <div class="form-group">
                 <label for="edit-estab">Estabelecimento</label>
-                <input type="text" id="edit-estab" value="${editingDespesa.estabelecimento || ''}" />
+                <input type="text" id="edit-estab" value="${escapeHtml(editingDespesa.estabelecimento)}" />
               </div>
               <div class="form-group form-group-full">
                 <label for="edit-desc">Descrição</label>
-                <textarea id="edit-desc" rows="2" style="width:100%;padding:var(--space-3) var(--space-4);font-family:var(--font-family);font-size:var(--font-size-sm);border:1px solid var(--color-border);border-radius:var(--radius-md);outline:none;resize:vertical;">${editingDespesa.descricao || ''}</textarea>
+                <textarea id="edit-desc" rows="2" style="width:100%;padding:var(--space-3) var(--space-4);font-family:var(--font-family);font-size:var(--font-size-sm);border:1px solid var(--color-border);border-radius:var(--radius-md);outline:none;resize:vertical;">${escapeHtml(editingDespesa.descricao)}</textarea>
               </div>
               <div class="form-group">
                 <label for="edit-cat">Categoria</label>
