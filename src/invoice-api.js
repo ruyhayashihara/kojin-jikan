@@ -3,73 +3,71 @@
  * https://www.invoice-kohyo.nta.go.jp/
  */
 
-const NTA_API_BASE = 'https://web-api.invoice-kohyo.nta.go.jp/1/num';
+const NTA_API_BASE = '/api/nta/company/invoice_name';
 
 /**
- * Verifica um número de registro Invoice na API da NTA.
+ * Verifica um número de registro Invoice na API pública proxyada.
  * @param {string} invoiceNumber - ex: T1234567890123
  * @returns {Promise<{valid: boolean, data?: object, error?: string}>}
  */
 export async function verifyInvoiceNumber(invoiceNumber) {
-    if (!invoiceNumber || !invoiceNumber.trim()) {
-        return { valid: false, error: 'Número Invoice não informado' };
+  if (!invoiceNumber || !invoiceNumber.trim()) {
+    return { valid: false, error: 'Número Invoice não informado' };
+  }
+
+  const num = invoiceNumber.trim().replace(/^T/i, '');
+  if (!/^\d{13}$/.test(num)) {
+    return { valid: false, error: 'Formato inválido. Use T + 13 dígitos (ex: T1234567890123)' };
+  }
+
+  try {
+    const res = await fetch(`${NTA_API_BASE}?id=T${num}`);
+
+    if (!res.ok) {
+      return { valid: false, error: `Erro na API de verificação (${res.status})` };
     }
 
-    const num = invoiceNumber.trim().replace(/^T/i, '');
-    if (!/^\d{13}$/.test(num)) {
-        return { valid: false, error: 'Formato inválido. Use T + 13 dígitos (ex: T1234567890123)' };
+    const textResult = await res.text();
+    const companyName = textResult.trim();
+
+    if (companyName && !companyName.toUpperCase().includes('ERROR')) {
+      return {
+        valid: true,
+        data: {
+          registrationNumber: `T${num}`,
+          name: companyName,
+          address: '',
+          status: 'Ativo',
+          updateDate: new Date().toISOString().split('T')[0],
+          registrationDate: '',
+        },
+      };
+    } else {
+      return { valid: false, error: 'Número não encontrado ou base indisponível' };
     }
-
-    try {
-        const res = await fetch(`${NTA_API_BASE}?id=T${num}&type=21&history=0`);
-        if (!res.ok) {
-            return { valid: false, error: `Erro na API da NTA (${res.status})` };
-        }
-
-        const json = await res.json();
-
-        if (json.announcement && json.announcement.length > 0) {
-            const item = json.announcement[0];
-            return {
-                valid: true,
-                data: {
-                    registrationNumber: item.registratedNumber || `T${num}`,
-                    name: item.name || '',
-                    address: item.address || '',
-                    status: item.updateDate ? 'Ativo' : 'Registrado',
-                    updateDate: item.updateDate || '',
-                    registrationDate: item.registrationDate || '',
-                },
-            };
-        } else {
-            return { valid: false, error: 'Número não encontrado na base da NTA' };
-        }
-    } catch (e) {
-        // If CORS blocks it (likely from browser), try with a fallback approach
-        if (e.name === 'TypeError' && e.message.includes('fetch')) {
-            return { valid: false, error: 'Não foi possível conectar à API da NTA. Verifique sua conexão.' };
-        }
-        return { valid: false, error: 'Número não encontrado na base da NTA' };
-    }
+  } catch (e) {
+    console.error("Erro consultando Invoice:", e);
+    return { valid: false, error: 'Não foi possível conectar à API de verificação. Verifique sua conexão.' };
+  }
 }
 
 /**
  * Renders the verification result card HTML
  */
 export function renderInvoiceVerifyResult(result) {
-    if (!result) return '';
+  if (!result) return '';
 
-    if (result.loading) {
-        return `
+  if (result.loading) {
+    return `
       <div class="invoice-verify-card invoice-verify-loading">
         <div class="invoice-verify-spinner"></div>
         <span>Verificando na base da NTA...</span>
       </div>
     `;
-    }
+  }
 
-    if (result.valid && result.data) {
-        return `
+  if (result.valid && result.data) {
+    return `
       <div class="invoice-verify-card invoice-verify-valid">
         <div class="invoice-verify-header">
           <span class="invoice-verify-icon invoice-icon-valid">✅</span>
@@ -83,9 +81,9 @@ export function renderInvoiceVerifyResult(result) {
         </div>
       </div>
     `;
-    }
+  }
 
-    return `
+  return `
     <div class="invoice-verify-card invoice-verify-invalid">
       <div class="invoice-verify-header">
         <span class="invoice-verify-icon invoice-icon-invalid">❌</span>
@@ -101,12 +99,12 @@ export function renderInvoiceVerifyResult(result) {
  * @returns {string} HTML for the status icon
  */
 export function getInvoiceStatusIcon(despesa) {
-    const num = despesa?.numero_invoice;
-    if (!num) {
-        return '<span class="invoice-dot invoice-dot-gray" title="Sem número Invoice">●</span>';
-    }
-    if (despesa?.invoice_verificado) {
-        return '<span class="invoice-dot invoice-dot-green" title="Invoice verificado">●</span>';
-    }
-    return '<span class="invoice-dot invoice-dot-amber" title="Invoice não verificado">●</span>';
+  const num = despesa?.numero_invoice;
+  if (!num) {
+    return '<span class="invoice-dot invoice-dot-gray" title="Sem número Invoice">●</span>';
+  }
+  if (despesa?.invoice_verificado) {
+    return '<span class="invoice-dot invoice-dot-green" title="Invoice verificado">●</span>';
+  }
+  return '<span class="invoice-dot invoice-dot-amber" title="Invoice não verificado">●</span>';
 }
