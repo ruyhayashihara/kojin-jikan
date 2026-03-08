@@ -31,8 +31,8 @@
     ],
     "rewrites": [
         {
-            "source": "/api/nta/(.*)",
-            "destination": "https://api.excelapi.org/$1"
+            "source": "/api/nta/:path*",
+            "destination": "https://api.excelapi.org/:path*"
         },
         {
             "source": "/(.*)",
