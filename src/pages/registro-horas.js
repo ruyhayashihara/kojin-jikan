@@ -413,7 +413,10 @@ export async function renderRegistroHoras(app) {
         const [ih, im] = intervalo.split(':');
         txtIntervalo = `${parseInt(ih) * 60 + parseInt(im)} 分`;
       }
-      const txtTotal = total > 0 ? `${total.toFixed(1)}h` : '-';
+      let txtTotal = total > 0 ? `${total.toFixed(1)}h` : '-';
+      if (obs) {
+        txtTotal += ' *';
+      }
       let finalSubtotal = 0;
       if (record?.tipo_calculo === 'fixo') {
         finalSubtotal = parseFloat(record.valor_diario) || 0;
@@ -450,7 +453,7 @@ export async function renderRegistroHoras(app) {
           <td class="col-time" style="text-align: center;">${txtEntrada}</td>
           <td class="col-time" style="text-align: center;">${txtSaida}</td>
           <td class="col-time" style="text-align: center;">${txtIntervalo}</td>
-          <td class="col-total" style="text-align: center; color: var(--color-text-muted);">${txtTotal}</td>
+          <td class="col-total" style="text-align: left; color: var(--color-text-muted); padding-left: 1.5rem;">${txtTotal}</td>
           <td class="col-subtotal" style="text-align: center;">${txtSubtotal}</td>
           <td class="col-acoes" style="text-align: center; width: 80px;">${actionHtml}</td>
         </tr>
@@ -504,7 +507,7 @@ export async function renderRegistroHoras(app) {
                     <th class="col-time" style="text-align: center;">Entrada</th>
                     <th class="col-time" style="text-align: center;">Saída</th>
                     <th class="col-time" style="text-align: center;">Intervalo</th>
-                    <th class="col-total" style="text-align: center;">Total</th>
+                    <th class="col-total" style="text-align: left; padding-left: 1.5rem;">Total</th>
                     <th class="col-subtotal" style="text-align: center;">¥ Subtotal</th>
                     <th class="col-acoes" style="text-align: center;">Ações</th>
                   </tr>

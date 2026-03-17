@@ -353,6 +353,7 @@ a:hover {
 .logo-icon {
   width: 48px;
   height: 48px;
+  object-fit: contain;
   color: var(--color-primary);
   filter: drop-shadow(0 2px 4px rgba(55, 48, 163, 0.2));
 }
@@ -458,6 +459,7 @@ a:hover {
 .logo-icon-sm {
   width: 28px;
   height: 28px;
+  object-fit: contain;
   color: var(--color-primary);
 }
 
@@ -536,7 +538,9 @@ a:hover {
 }
 
 .sidebar-brand-icon {
-  font-size: 1.5rem;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
