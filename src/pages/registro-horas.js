@@ -53,6 +53,12 @@ export async function renderRegistroHoras(app) {
   let selectedYear = now.getFullYear();
   let selectedMonth = now.getMonth() + 1;
 
+  // Read month/year set by dashboard navigation
+  const navMonth = sessionStorage.getItem('keiro_nav_month');
+  const navYear = sessionStorage.getItem('keiro_nav_year');
+  if (navMonth) { selectedMonth = parseInt(navMonth); sessionStorage.removeItem('keiro_nav_month'); }
+  if (navYear) { selectedYear = parseInt(navYear); sessionStorage.removeItem('keiro_nav_year'); }
+
   // State
   let registros = {}; // key: day number -> record
   let descontos = [];  // array of desconto objects
