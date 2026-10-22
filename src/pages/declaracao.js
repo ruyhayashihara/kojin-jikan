@@ -73,7 +73,10 @@ export async function renderDeclaracao(app) {
     const avgValorHora = resumos.length > 0
       ? resumos.reduce((s, r) => s + (r.valor_hora || 0), 0) / resumos.filter(r => r.valor_hora > 0).length || 0
       : 0;
-    const receitaBruta = resumos.reduce((s, r) => s + ((r.total_horas || 0) * (r.valor_hora || 0)), 0);
+    const receitaBruta = resumos.reduce((s, r) => {
+      const adicional = (parseFloat(r?.total_adicional_extra) || 0) + (parseFloat(r?.total_adicional_noturno) || 0);
+      return s + ((r.total_horas || 0) * (r.valor_hora || 0)) + adicional;
+    }, 0);
     const receitaLiquida = receitaBruta - totalDescontos;
     return {
       totalHoras: Math.round(totalHoras * 10) / 10,

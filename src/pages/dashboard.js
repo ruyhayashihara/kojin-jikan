@@ -5,6 +5,12 @@ import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 const MESES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+function formatHours(dec) {
+  if (dec === null || dec === undefined || isNaN(dec) || dec <= 0) return '0h';
+  const num = parseFloat(Number(dec).toFixed(2));
+  return `${num}h`;
+}
+
 export async function renderDashboard(app) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { navigate('/login'); return; }
@@ -34,7 +40,8 @@ export async function renderDashboard(app) {
     monthData[m] = { total_horas: 0, valor_hora: 0, subtotal_bruto: 0, total_descontos: 0, total_liquido: 0 };
   }
   resumos.forEach(r => {
-    const bruto = (r.total_horas || 0) * (r.valor_hora || 0);
+    const adicional = (parseFloat(r.total_adicional_extra) || 0) + (parseFloat(r.total_adicional_noturno) || 0);
+    const bruto = ((r.total_horas || 0) * (r.valor_hora || 0)) + adicional;
     const liq = bruto - (r.total_descontos || 0);
     monthData[r.mes] = {
       total_horas: r.total_horas || 0,
@@ -81,7 +88,7 @@ export async function renderDashboard(app) {
     return `
       <tr class="summary-row ${isCurrentMonth ? 'summary-row-current' : ''} ${hasData ? 'summary-row-clickable' : ''}" data-month="${m}">
         <td class="col-month">${name}</td>
-        <td class="col-num">${d.total_horas > 0 ? d.total_horas.toFixed(1) + 'h' : '—'}</td>
+        <td class="col-num">${d.total_horas > 0 ? formatHours(d.total_horas) : '—'}</td>
         <td class="col-num">¥${d.subtotal_bruto > 0 ? d.subtotal_bruto.toLocaleString('ja-JP') : '0'}</td>
         <td class="col-num col-discount">¥${d.total_descontos > 0 ? d.total_descontos.toLocaleString('ja-JP') : '0'}</td>
         <td class="col-num ${d.total_liquido >= 0 ? 'col-positive' : 'col-negative'}">¥${d.total_liquido !== 0 ? d.total_liquido.toLocaleString('ja-JP') : '0'}</td>
@@ -119,7 +126,7 @@ export async function renderDashboard(app) {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div class="bento-label">Horas Trabalhadas</div>
-              <div class="bento-value">${cm.total_horas > 0 ? cm.total_horas.toFixed(1) + 'h' : '0h'}</div>
+              <div class="bento-value">${cm.total_horas > 0 ? formatHours(cm.total_horas) : '0h'}</div>
               <div class="bento-sub">${MESES_NOME[currentMonth - 1]}</div>
             </div>
             <div class="bento-card">
@@ -173,7 +180,7 @@ export async function renderDashboard(app) {
               <tfoot>
                 <tr class="summary-total-row">
                   <td><strong>Total</strong></td>
-                  <td class="col-num"><strong>${annualHoras > 0 ? annualHoras.toFixed(1) + 'h' : '—'}</strong></td>
+                  <td class="col-num"><strong>${annualHoras > 0 ? formatHours(annualHoras) : '—'}</strong></td>
                   <td class="col-num"><strong>¥${annualBruto > 0 ? annualBruto.toLocaleString('ja-JP') : '0'}</strong></td>
                   <td class="col-num col-discount"><strong>¥${annualDescontos > 0 ? annualDescontos.toLocaleString('ja-JP') : '0'}</strong></td>
                   <td class="col-num ${annualLiquido >= 0 ? 'col-positive' : 'col-negative'}"><strong>¥${annualLiquido !== 0 ? annualLiquido.toLocaleString('ja-JP') : '0'}</strong></td>

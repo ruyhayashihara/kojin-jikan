@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS registro_diario (
   tipo_calculo TEXT,
   valor_diario NUMERIC(10,2),
   horas_extras NUMERIC(5,2) DEFAULT 0,
+  adicional_noturno NUMERIC(5,2) DEFAULT 0,
+  adicional_fim_de_semana NUMERIC(5,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -142,6 +144,10 @@ CREATE TABLE IF NOT EXISTS resumo_mensal (
   mes INTEGER NOT NULL,
   total_horas NUMERIC(10,2) DEFAULT 0,
   valor_hora NUMERIC(10,2) DEFAULT 0,
+  total_horas_extras NUMERIC(10,2) DEFAULT 0,
+  total_horas_noturnas NUMERIC(10,2) DEFAULT 0,
+  total_adicional_extra NUMERIC(12,2) DEFAULT 0,
+  total_adicional_noturno NUMERIC(12,2) DEFAULT 0,
   subtotal_bruto NUMERIC(12,2) GENERATED ALWAYS AS (total_horas * valor_hora) STORED,
   total_descontos NUMERIC(12,2) DEFAULT 0,
   total_liquido NUMERIC(12,2) GENERATED ALWAYS AS ((total_horas * valor_hora) - total_descontos) STORED,
@@ -272,3 +278,36 @@ CREATE TRIGGER perfil_usuario_updated_at
 CREATE TRIGGER resumo_mensal_updated_at
   BEFORE UPDATE ON resumo_mensal
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- 8. MIGRAÇÕES INCREMENTAIS / ATUALIZAÇÕES IDEMPOTENTES
+-- Horas Extras e Adicional Noturno (+25%) - Regras Trabalhistas do Japão
+-- ============================================================
+DO $$
+BEGIN
+  -- 8.1 Colunas na tabela registro_diario
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='registro_diario' AND column_name='horas_extras') THEN
+    ALTER TABLE registro_diario ADD COLUMN horas_extras NUMERIC(5,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='registro_diario' AND column_name='adicional_noturno') THEN
+    ALTER TABLE registro_diario ADD COLUMN adicional_noturno NUMERIC(5,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='registro_diario' AND column_name='adicional_fim_de_semana') THEN
+    ALTER TABLE registro_diario ADD COLUMN adicional_fim_de_semana NUMERIC(5,2) DEFAULT 0;
+  END IF;
+
+  -- 8.2 Colunas na tabela resumo_mensal
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='resumo_mensal' AND column_name='total_horas_extras') THEN
+    ALTER TABLE resumo_mensal ADD COLUMN total_horas_extras NUMERIC(10,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='resumo_mensal' AND column_name='total_horas_noturnas') THEN
+    ALTER TABLE resumo_mensal ADD COLUMN total_horas_noturnas NUMERIC(10,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='resumo_mensal' AND column_name='total_adicional_extra') THEN
+    ALTER TABLE resumo_mensal ADD COLUMN total_adicional_extra NUMERIC(12,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='resumo_mensal' AND column_name='total_adicional_noturno') THEN
+    ALTER TABLE resumo_mensal ADD COLUMN total_adicional_noturno NUMERIC(12,2) DEFAULT 0;
+  END IF;
+END $$;
+

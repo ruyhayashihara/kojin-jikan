@@ -49,7 +49,8 @@ export async function renderHistorico(app) {
       const monthData = [];
       for (let m = 1; m <= 12; m++) {
         const r = resumos.find(x => x.mes === m);
-        const bruto = r ? (r.total_horas || 0) * (r.valor_hora || 0) : 0;
+        const adicional = (parseFloat(r?.total_adicional_extra) || 0) + (parseFloat(r?.total_adicional_noturno) || 0);
+        const bruto = r ? (((r.total_horas || 0) * (r.valor_hora || 0)) + adicional) : 0;
         const liq = bruto - (r?.total_descontos || 0);
         monthData.push({
           mes: m,

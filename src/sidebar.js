@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
+import { exportarMesPDF } from './pdf-export.js';
 
 const NAV_ITEMS = [
   {
@@ -25,6 +26,11 @@ const NAV_ITEMS = [
   {
     id: 'historico', label: 'Histórico', href: '#/historico',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
+  },
+  {
+    id: 'exportar-pdf', label: 'Exportar Mês (PDF)', href: '#exportar-pdf',
+    isAction: true,
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
   },
 ];
 
@@ -59,6 +65,13 @@ export function renderSidebar(activePage) {
   const isDark = theme === 'dark';
 
   function renderItem(item) {
+    if (item.isAction) {
+      return `
+        <button type="button" class="sidebar-item sidebar-action-btn" id="sidebar-action-${item.id}" title="${item.label}">
+          <span class="sidebar-icon">${item.icon}</span>
+          <span class="sidebar-label">${item.label}</span>
+        </button>`;
+    }
     const isActive = item.id === activePage;
     return `
       <a href="${item.href}" class="sidebar-item ${isActive ? 'sidebar-item-active' : ''}" title="${item.label}">
@@ -116,7 +129,66 @@ export function renderSidebar(activePage) {
           <span class="sidebar-label">${isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
         </button>
       </div>
-    </aside>`;
+    </aside>
+
+    <!-- Modal Global de Exportação de Mês em PDF -->
+    <div id="modal-export-mes-global" class="modal-overlay" style="display: none;">
+      <div class="modal card" style="max-width: 480px; width: 92%; padding: 1.5rem;">
+        <div class="modal-header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--color-text);">Exportar Mês em PDF</h2>
+            <p style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 2px;">Selecione o período para gerar a Folha de Ponto (勤務実績表)</p>
+          </div>
+          <button type="button" id="modal-export-close-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); line-height: 1;">&times;</button>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group" style="gap: 0.25rem;">
+              <label for="export-sel-year" style="font-size: 0.8rem; font-weight: 600; color: var(--color-text);">Ano (年)</label>
+              <select id="export-sel-year" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;"></select>
+            </div>
+            <div class="form-group" style="gap: 0.25rem;">
+              <label for="export-sel-month" style="font-size: 0.8rem; font-weight: 600; color: var(--color-text);">Mês (月)</label>
+              <select id="export-sel-month" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;"></select>
+            </div>
+          </div>
+
+          <!-- Card de Prévia do Mês -->
+          <div id="export-preview-card" style="background: rgba(0,0,0,0.03); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); display: flex; justify-content: space-between;">
+              <span id="export-preview-title">—</span>
+              <span id="export-preview-status" style="font-size: 0.75rem; color: #10b981;">Carregando...</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.82rem;">
+              <div><span style="color: var(--color-text-muted);">Horas Trabalhadas:</span> <strong id="export-preview-horas">0h</strong></div>
+              <div><span style="color: var(--color-text-muted);">Horas Extras (>8h):</span> <strong id="export-preview-extras" style="color: #d97706;">0h</strong></div>
+              <div><span style="color: var(--color-text-muted);">Adic. Noturno (22h-5h):</span> <strong id="export-preview-noturno" style="color: #7c3aed;">0h</strong></div>
+              <div><span style="color: var(--color-text-muted);">Líquido Estimado:</span> <strong id="export-preview-liquido" style="color: #059669;">¥0</strong></div>
+            </div>
+          </div>
+
+          <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4;">
+            ⚖️ <em>O PDF gerado traz o relatório com cálculo automático dos adicionais de 25% (horas extras e noturnas), tabela diária completa e espaço para assinatura.</em>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+          <button type="button" id="modal-export-btn-goto" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.75rem;" title="Abrir este mês na tela de Registro de Horas">
+            Abrir Timesheet
+          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" id="modal-export-btn-cancel" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.75rem;">
+              Cancelar
+            </button>
+            <button type="button" id="modal-export-btn-confirm" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Exportar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 export function bindSidebarEvents() {
@@ -174,4 +246,165 @@ export function bindSidebarEvents() {
       document.getElementById('sidebar-overlay')?.classList.remove('sidebar-overlay-visible');
     });
   });
+
+  // Modal Global de Exportação de Mês em PDF
+  const btnExportPdf = document.getElementById('sidebar-action-exportar-pdf');
+  const modalExport = document.getElementById('modal-export-mes-global');
+  const selExpYear = document.getElementById('export-sel-year');
+  const selExpMonth = document.getElementById('export-sel-month');
+  const btnExpConfirm = document.getElementById('modal-export-btn-confirm');
+  const btnExpGoto = document.getElementById('modal-export-btn-goto');
+  const btnExpCancel = document.getElementById('modal-export-btn-cancel');
+  const btnExpClose = document.getElementById('modal-export-close-btn');
+
+  if (btnExportPdf && modalExport) {
+    const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth() + 1;
+
+    // Popula opções de ano
+    if (selExpYear && selExpYear.children.length === 0) {
+      for (let y = currYear - 3; y <= currYear + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = `${y}年 (${y})`;
+        if (y === currYear) opt.selected = true;
+        selExpYear.appendChild(opt);
+      }
+    }
+
+    // Popula opções de mês
+    if (selExpMonth && selExpMonth.children.length === 0) {
+      MESES_NOME.forEach((name, i) => {
+        const m = i + 1;
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = `${m}月 — ${name}`;
+        if (m === currMonth) opt.selected = true;
+        selExpMonth.appendChild(opt);
+      });
+    }
+
+    async function updateExportPreview() {
+      const y = parseInt(selExpYear?.value) || currYear;
+      const m = parseInt(selExpMonth?.value) || currMonth;
+      const titleEl = document.getElementById('export-preview-title');
+      const statusEl = document.getElementById('export-preview-status');
+      const hEl = document.getElementById('export-preview-horas');
+      const exEl = document.getElementById('export-preview-extras');
+      const notEl = document.getElementById('export-preview-noturno');
+      const liqEl = document.getElementById('export-preview-liquido');
+
+      if (titleEl) titleEl.textContent = `${MESES_NOME[m - 1]} ${y}`;
+      if (statusEl) { statusEl.textContent = 'Buscando dados...'; statusEl.style.color = '#64748b'; }
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Busca resumo mensal
+        const { data: res } = await supabase
+          .from('resumo_mensal')
+          .select('*')
+          .eq('usuario_id', user.id)
+          .eq('ano', y)
+          .eq('mes', m)
+          .maybeSingle();
+
+        if (res && (parseFloat(res.total_horas) > 0 || parseFloat(res.subtotal_bruto) > 0)) {
+          if (statusEl) { statusEl.textContent = 'Dados consolidados'; statusEl.style.color = '#10b981'; }
+          if (hEl) hEl.textContent = `${parseFloat(Number(res.total_horas).toFixed(2))}h`;
+          if (exEl) exEl.textContent = `${parseFloat(Number(res.total_horas_extras || 0).toFixed(2))}h`;
+          if (notEl) notEl.textContent = `${parseFloat(Number(res.total_horas_noturnas || 0).toFixed(2))}h`;
+          if (liqEl) liqEl.textContent = `¥${Math.round(res.total_liquido || 0).toLocaleString('ja-JP')}`;
+        } else {
+          // Se não houver resumo consolidado, consulta registros diários do mês
+          const { data: regs } = await supabase
+            .from('registro_diario')
+            .select('total_horas, horas_extras, adicional_noturno, valor_diario')
+            .eq('usuario_id', user.id)
+            .eq('ano', y)
+            .eq('mes', m);
+
+          if (regs && regs.length > 0) {
+            const sumHoras = regs.reduce((s, r) => s + (parseFloat(r.total_horas) || 0), 0);
+            const sumExtras = regs.reduce((s, r) => s + (parseFloat(r.horas_extras) || 0), 0);
+            const sumNoturno = regs.reduce((s, r) => s + (parseFloat(r.adicional_noturno) || 0), 0);
+            if (statusEl) { statusEl.textContent = `${regs.length} dias registrados`; statusEl.style.color = '#10b981'; }
+            if (hEl) hEl.textContent = `${parseFloat(sumHoras.toFixed(2))}h`;
+            if (exEl) exEl.textContent = `${parseFloat(sumExtras.toFixed(2))}h`;
+            if (notEl) notEl.textContent = `${parseFloat(sumNoturno.toFixed(2))}h`;
+            if (liqEl) liqEl.textContent = 'Calculado no PDF';
+          } else {
+            if (statusEl) { statusEl.textContent = 'Sem registros no mês'; statusEl.style.color = '#94a3b8'; }
+            if (hEl) hEl.textContent = '0h';
+            if (exEl) exEl.textContent = '0h';
+            if (notEl) notEl.textContent = '0h';
+            if (liqEl) liqEl.textContent = '¥0';
+          }
+        }
+      } catch (e) {
+        if (statusEl) { statusEl.textContent = 'Erro ao consultar'; statusEl.style.color = '#ef4444'; }
+      }
+    }
+
+    btnExportPdf.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Fecha sidebar no mobile
+      document.getElementById('sidebar')?.classList.remove('sidebar-mobile-open');
+      document.getElementById('sidebar-overlay')?.classList.remove('sidebar-overlay-visible');
+      modalExport.style.display = 'flex';
+      updateExportPreview();
+    });
+
+    selExpYear?.addEventListener('change', updateExportPreview);
+    selExpMonth?.addEventListener('change', updateExportPreview);
+
+    btnExpClose?.addEventListener('click', () => { modalExport.style.display = 'none'; });
+    btnExpCancel?.addEventListener('click', () => { modalExport.style.display = 'none'; });
+    modalExport.addEventListener('click', (e) => {
+      if (e.target === modalExport) modalExport.style.display = 'none';
+    });
+
+    btnExpGoto?.addEventListener('click', () => {
+      const y = selExpYear?.value || String(currYear);
+      const m = selExpMonth?.value || String(currMonth);
+      sessionStorage.setItem('keiro_nav_year', y);
+      sessionStorage.setItem('keiro_nav_month', m);
+      modalExport.style.display = 'none';
+      navigate('/registro-horas');
+    });
+
+    btnExpConfirm?.addEventListener('click', async () => {
+      const y = parseInt(selExpYear?.value) || currYear;
+      const m = parseInt(selExpMonth?.value) || currMonth;
+      btnExpConfirm.disabled = true;
+      btnExpConfirm.textContent = 'Gerando PDF...';
+
+      let printWin = null;
+      try {
+        printWin = window.open('about:blank', '_blank');
+        if (printWin) {
+          printWin.document.write('<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;"><div style="text-align:center;"><div style="font-size:24px;margin-bottom:12px;">⏳</div><div style="font-size:16px;font-weight:600;margin-bottom:6px;">Gerando Folha de Ponto / 勤務実績表...</div><div style="font-size:13px;color:#94a3b8;">Aguarde um instante enquanto compilamos os dados.</div></div></body></html>');
+          printWin.document.close();
+        }
+      } catch (e) { }
+
+      try {
+        await exportarMesPDF({ ano: y, mes: m, targetWindow: printWin });
+        modalExport.style.display = 'none';
+      } catch (err) {
+        if (printWin && !printWin.closed) printWin.close();
+        console.error('Erro ao exportar PDF:', err);
+        alert('Erro ao exportar PDF: ' + (err.message || err));
+      } finally {
+        btnExpConfirm.disabled = false;
+        btnExpConfirm.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Exportar PDF
+        `;
+      }
+    });
+  }
 }
