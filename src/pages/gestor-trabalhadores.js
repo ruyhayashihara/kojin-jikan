@@ -427,7 +427,7 @@ export async function renderGestorTrabalhadores(app) {
                     </div>
 
                     <div>
-                      <button type="button" class="btn btn-primary" id="btn-adicionar-licenca" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;" disabled>
+                      <button type="button" class="btn btn-primary" id="btn-adicionar-licenca" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; cursor: pointer;">
                         <span>+ Adicionar à Ficha</span>
                       </button>
                     </div>
@@ -914,10 +914,19 @@ export async function renderGestorTrabalhadores(app) {
   btnAddLic?.addEventListener('click', () => {
     const catVal = selCategoriaLic?.value;
     const licIdx = selPresetLic?.value;
-    if (!catVal || licIdx === '' || licIdx === undefined) {
-      alert('Por favor, selecione uma categoria e a qualificação desejada.');
+
+    if (!catVal) {
+      alert('Por favor, selecione primeiro a Categoria da Licença (ex: Cargas, Solda, Veículos...).');
+      selCategoriaLic?.focus();
       return;
     }
+
+    if (licIdx === '' || licIdx === undefined || isNaN(parseInt(licIdx))) {
+      alert('Por favor, selecione a Qualificação / Curso desejado na lista suspensa.');
+      selPresetLic?.focus();
+      return;
+    }
+
     const catObj = CATEGORIAS_LICENCAS.find(c => c.id === catVal);
     if (!catObj) return;
     const item = catObj.licencas[parseInt(licIdx)];
@@ -929,8 +938,10 @@ export async function renderGestorTrabalhadores(app) {
       return;
     }
 
+    const newLicId = 'lic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
     trabalhadorLicencas.push({
-      id: 'lic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: newLicId,
       categoria_id: catObj.id,
       categoria_nome: catObj.nome.split(' (')[0] || catObj.nome,
       categoria_icon: catObj.icon,
@@ -944,6 +955,17 @@ export async function renderGestorTrabalhadores(app) {
     });
 
     renderLicencasAdicionadas();
+
+    // Limpa a seleção para facilitar próxima escolha
+    selPresetLic.value = '';
+
+    // Efeito suave de destaque na licença recém adicionada
+    const newCard = containerLicencas?.querySelector(`[data-lic-id="${newLicId}"]`);
+    if (newCard) {
+      newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      newCard.style.boxShadow = '0 0 0 2px #38bdf8';
+      setTimeout(() => { newCard.style.boxShadow = ''; }, 1500);
+    }
   });
 
   // Botão Adicionar Licença Personalizada
@@ -956,8 +978,10 @@ export async function renderGestorTrabalhadores(app) {
       return;
     }
 
+    const newLicId = 'lic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
     trabalhadorLicencas.push({
-      id: 'lic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: newLicId,
       categoria_id: 'personalizado',
       categoria_nome: 'Personalizada',
       categoria_icon: '✏️',
@@ -975,11 +999,18 @@ export async function renderGestorTrabalhadores(app) {
     selCategoriaLic.value = '';
     wrapCustomLic.style.display = 'none';
     wrapSelectLic.style.display = 'block';
-    btnAddLic.style.display = 'inline-block';
+    if (btnAddLic) btnAddLic.style.display = 'inline-flex';
     selPresetLic.disabled = true;
     selPresetLic.innerHTML = '<option value="">Selecione a categoria primeiro</option>';
 
     renderLicencasAdicionadas();
+
+    const newCard = containerLicencas?.querySelector(`[data-lic-id="${newLicId}"]`);
+    if (newCard) {
+      newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      newCard.style.boxShadow = '0 0 0 2px #fbbf24';
+      setTimeout(() => { newCard.style.boxShadow = ''; }, 1500);
+    }
   });
 
   // Exclusão de licença da lista
