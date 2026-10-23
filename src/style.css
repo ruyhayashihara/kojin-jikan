@@ -215,10 +215,7 @@ a:hover {
   color: var(--color-text);
 }
 
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="password"],
-.form-group input[type="number"],
+.form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
@@ -231,6 +228,16 @@ a:hover {
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   outline: none;
+  box-sizing: border-box;
+}
+
+.form-group input[type="checkbox"],
+.form-group input[type="radio"] {
+  width: auto;
+}
+
+.form-group input[type="date"] {
+  color-scheme: dark;
 }
 
 .form-group input:focus,
@@ -240,7 +247,8 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
 }
 
-.form-group input::placeholder {
+.form-group input::placeholder,
+.form-group textarea::placeholder {
   color: var(--color-text-muted);
 }
 
@@ -250,6 +258,231 @@ a:hover {
   background-repeat: no-repeat;
   background-position: right var(--space-4) center;
   padding-right: var(--space-10);
+}
+
+.form-group select option {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* --- Responsive Form Grids --- */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .form-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .form-grid-4,
+  .form-grid-3,
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Input Addon Wrapper (e.g. ¥ prefix) --- */
+.input-addon-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.input-addon-wrapper:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+
+.input-addon-prefix,
+.input-addon-suffix {
+  padding: 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.input-addon-wrapper input {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3) var(--space-2) !important;
+}
+
+/* --- Rirekisho Form Sections --- */
+.rirekisho-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.rirekisho-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.rirekisho-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rirekisho-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0;
+}
+
+.rirekisho-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.rirekisho-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* --- Licenças e Qualificações no Japão (免許・資格) --- */
+.licenca-item-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-left: 3px solid #38bdf8;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.licenca-item-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.licenca-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.licenca-title-ja {
+  font-weight: 700;
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.licenca-title-pt {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.badge-licenca-cat {
+  font-size: 0.7rem;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-weight: 500;
+}
+
+.badge-licenca-custom {
+  font-size: 0.7rem;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-weight: 500;
+}
+
+.btn-remove-licenca {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-remove-licenca:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+}
+
+.badge-mini-licenca {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  white-space: nowrap;
+}
+
+.empty-licencas-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px dashed rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-md);
+  color: #94a3b8;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .checkbox-label {
@@ -1099,8 +1332,16 @@ a:hover {
 
 .col-extra,
 .col-noturno {
-  width: 78px;
+  width: 72px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.col-subtotal {
+  width: 88px;
+  text-align: center;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1437,74 +1678,212 @@ a:hover {
   border: 1px solid var(--color-error-border);
 }
 
+/* --- Dual Role Tabs & Gestor Styling --- */
+.role-tab {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent !important;
+}
+
+.role-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+
+.role-tab.role-tab-active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.45);
+}
+
+.badge-role-gestor {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.badge-worker-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #1e293b;
+  color: #38bdf8;
+  border: 1px solid #0284c7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+
+.mobile-timesheet-hint {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.75rem;
+  margin-bottom: var(--space-2);
+}
+
 /* --- Responsive Timesheet --- */
 @media (max-width: 768px) {
+  .mobile-timesheet-hint {
+    display: flex;
+  }
+
   .timesheet-wrapper {
     display: block;
     width: 100%;
-    max-width: 100vw;
     border-radius: var(--radius-md);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin: 0 auto;
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   }
 
   .timesheet-wrapper.card {
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 0 !important;
   }
 
   .timesheet-table {
-    font-size: var(--font-size-xs);
+    min-width: 320px; /* Reduzido para caber confortavelmente em qualquer smartphone com tabela de 8 colunas e sem ícones redundantes */
     width: 100%;
+    font-size: var(--font-size-xs);
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
-  .timesheet-table th {
-    padding: var(--space-1) var(--space-1);
-    font-size: 0.65rem;
+  .timesheet-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 7px 2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #1e293b;
+    border-bottom: 2px solid #334155;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+    text-align: center;
   }
 
   .timesheet-table td {
-    padding: 2px 2px;
+    padding: 6px 2px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: middle;
   }
 
-  .input-time,
-  .input-obs {
-    padding: 2px 4px;
-    font-size: var(--font-size-xs);
+  /* Coluna de Data Fixa (Sticky) na rolagem horizontal para o usuário nunca perder o dia de vista */
+  .timesheet-table th.col-date,
+  .timesheet-table td.col-date {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: #0f172a;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
+    min-width: 44px;
+    width: 44px;
+    text-align: center;
+    padding-left: 2px;
+    padding-right: 2px;
   }
 
-  .col-date {
-    width: 36px;
-    font-size: var(--font-size-xs);
+  .timesheet-table thead th.col-date {
+    z-index: 15;
+    background: #1e293b;
   }
 
-  .col-dow {
-    width: 30px;
-    font-size: var(--font-size-xs);
+  .row-weekend.is-saturday td.col-date {
+    background: #111e38 !important;
+  }
+
+  .row-weekend.is-sunday td.col-date {
+    background: #241418 !important;
+  }
+
+  .row-overtime td.col-date {
+    background: #231f13 !important;
   }
 
   .col-time {
-    width: 45px;
-  }
-
-  .col-acoes {
-    width: 40px;
+    min-width: 44px;
+    width: 44px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
 
   .col-total {
-    width: 44px;
-    font-size: var(--font-size-xs);
+    min-width: 38px;
+    width: 38px;
+    font-weight: 700;
+    text-align: center;
   }
 
   .col-extra,
   .col-noturno {
-    width: 55px;
+    min-width: 36px;
+    width: 36px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .col-subtotal {
+    min-width: 62px;
+    width: 62px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .badge-extra,
+  .badge-noturno {
+    padding: 1px 3px;
+    font-size: 0.68rem;
+    letter-spacing: -0.02em;
+  }
+
+  .row-actions button:active {
+    transform: scale(0.92);
+  }
+
+  .input-time,
+  .input-obs {
+    padding: 4px 6px;
+    font-size: var(--font-size-xs);
   }
 
   .col-obs {
-    min-width: 60px;
+    min-width: 70px;
+  }
+
+  /* Modal de Horas Responsivo */
+  #modal-horas {
+    padding: 10px;
+  }
+
+  #modal-horas .modal-content {
+    max-width: 100% !important;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1.25rem !important;
+    border-radius: 12px !important;
   }
 
   .desconto-row {

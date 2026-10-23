@@ -601,6 +601,7 @@ export async function exportarMesPDF({ ano, mes, userId = null, perfil = null, r
         <td class="meta-box">
           <div><strong>対象期間 (Período):</strong> ${ano}年 ${mes}月 (${MESES_NOME[mes - 1]})</div>
           <div><strong>氏名 (Nome):</strong> ${escapeHtml(nomeUsuario)}</div>
+          ${finalPerfil.codigo_trabalhador ? `<div><strong>ID (従業員番号):</strong> ${escapeHtml(finalPerfil.codigo_trabalhador)}</div>` : ''}
           ${taxaPadrao > 0 ? `<div><strong>基準時給 (Taxa Base):</strong> ¥${taxaPadrao.toLocaleString('ja-JP')}/h</div>` : ''}
           ${numInvoice ? `<div>${escapeHtml(numInvoice)}</div>` : ''}
           ${myNumber ? `<div>${escapeHtml(myNumber)}</div>` : ''}

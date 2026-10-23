@@ -12,7 +12,7 @@ export async function navigate(path) {
 }
 
 export async function handleRoute() {
-    const hash = window.location.hash.slice(1) || '/login';
+    const rawHash = window.location.hash.slice(1) || '/login';
     const app = document.getElementById('app');
 
     // Cleanup previous page
@@ -23,7 +23,7 @@ export async function handleRoute() {
 
     // Handle Supabase OAuth / Email Confirmation redirects
     // Supabase redirects to #access_token=...&refresh_token=...
-    if (hash.startsWith('access_token=')) {
+    if (rawHash.startsWith('access_token=')) {
         // Supabase client automatically parses the hash and sets the session.
         // We just need to wait a moment and then clean up the URL to show the dashboard.
         window.history.replaceState(null, '', window.location.pathname);
@@ -31,9 +31,12 @@ export async function handleRoute() {
         return;
     }
 
+    // Extrai o caminho base ignorando query strings (ex: #/cadastro?role=gestor -> /cadastro)
+    const [path] = rawHash.split('?');
+
     const publicRoutes = ['/login', '/cadastro'];
 
-    if (!publicRoutes.includes(hash)) {
+    if (!publicRoutes.includes(path)) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             window.location.hash = '/login';
@@ -42,7 +45,7 @@ export async function handleRoute() {
     }
 
     try {
-        const handler = routes[hash];
+        const handler = routes[path];
         if (handler) {
             const cleanup = await handler(app);
             if (typeof cleanup === 'function') {
@@ -60,7 +63,7 @@ export async function handleRoute() {
     `;
         }
     } catch (error) {
-        console.error("Router error handling hash:", hash, error);
+        console.error("Router error handling path:", path, error);
         app.innerHTML = `
       <div class="page-container">
         <div class="card" style="text-align:center;">

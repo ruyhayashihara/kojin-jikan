@@ -2,6 +2,26 @@ import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
 import { exportarMesPDF } from './pdf-export.js';
 
+const GESTOR_NAV_ITEMS = [
+  {
+    id: 'gestor-dashboard', label: 'Painel Gestor', href: '#/gestor-dashboard',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
+  },
+  {
+    id: 'gestor-trabalhadores', label: 'Trabalhadores (IDs)', href: '#/gestor-trabalhadores',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+  },
+  {
+    id: 'registro-horas', label: 'Apontamento de Horas', href: '#/registro-horas',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  },
+  {
+    id: 'exportar-pdf', label: 'Exportar Folhas (PDF)', href: '#exportar-pdf',
+    isAction: true,
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
+  }
+];
+
 const NAV_ITEMS = [
   {
     id: 'dashboard', label: 'Dashboard', href: '#/dashboard',
@@ -63,6 +83,8 @@ export function renderSidebar(activePage) {
   const collapsed = isSidebarCollapsed();
   const theme = localStorage.getItem('keiro_theme') || 'light';
   const isDark = theme === 'dark';
+  const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+  const navList = isGestor ? GESTOR_NAV_ITEMS : NAV_ITEMS;
 
   function renderItem(item) {
     if (item.isAction) {
@@ -83,9 +105,10 @@ export function renderSidebar(activePage) {
   return `
     <!-- Mobile top bar -->
     <div class="mobile-topbar">
-      <a href="#/dashboard" class="mobile-brand">
+      <a href="${isGestor ? '#/gestor-dashboard' : '#/dashboard'}" class="mobile-brand">
         <img src="/logo.png" alt="Logo" class="logo-icon-sm" />
         <span class="mobile-brand-title">マイ個人</span>
+        ${isGestor ? '<span class="badge-role-gestor" style="margin-left: 6px;">管理者</span>' : ''}
       </a>
       <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
         ${ICON_HAMBURGER}
@@ -98,9 +121,10 @@ export function renderSidebar(activePage) {
     <!-- Sidebar -->
     <aside class="sidebar ${collapsed ? 'sidebar-collapsed' : ''}" id="sidebar">
       <div class="sidebar-header">
-        <a href="#/dashboard" class="sidebar-brand">
+        <a href="${isGestor ? '#/gestor-dashboard' : '#/dashboard'}" class="sidebar-brand">
           <img src="/logo.png" alt="Logo" class="sidebar-brand-icon" />
           <span class="sidebar-brand-text">マイ個人</span>
+          ${isGestor ? '<span class="badge-role-gestor" style="margin-left: 6px;">管理者</span>' : ''}
         </a>
         <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Recolher menu">
           ${collapsed ? ICON_EXPAND : ICON_COLLAPSE}
@@ -109,12 +133,16 @@ export function renderSidebar(activePage) {
 
       <nav class="sidebar-nav">
         <div class="sidebar-section">
-          ${NAV_ITEMS.map(renderItem).join('')}
+          ${navList.map(renderItem).join('')}
         </div>
 
         <div class="sidebar-divider"></div>
 
         <div class="sidebar-section">
+          <button type="button" class="sidebar-item" id="btn-toggle-role" style="font-size: 0.78rem; opacity: 0.85;" title="${isGestor ? 'Mudar para Visão Individual' : 'Mudar para Visão de Gestor'}">
+            <span class="sidebar-icon">${isGestor ? '👤' : '🏢'}</span>
+            <span class="sidebar-label">${isGestor ? 'Ver Modo Individual' : 'Painel do Gestor'}</span>
+          </button>
           ${SECONDARY_ITEMS.map(renderItem).join('')}
           <button class="sidebar-item sidebar-logout" id="sidebar-logout" title="Sair">
             <span class="sidebar-icon">${ICON_LOGOUT}</span>
@@ -231,6 +259,15 @@ export function bindSidebarEvents() {
       if (label) label.textContent = next === 'dark' ? 'Modo Claro' : 'Modo Escuro';
       btn.title = next === 'dark' ? 'Modo claro' : 'Modo escuro';
     }
+  });
+
+  // Role toggle (Individual <-> Gestor)
+  document.getElementById('btn-toggle-role')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+    const nextRole = isGestor ? 'individual' : 'gestor';
+    sessionStorage.setItem('keiro_active_role', nextRole);
+    navigate(nextRole === 'gestor' ? '/gestor-dashboard' : '/dashboard');
   });
 
   // Logout

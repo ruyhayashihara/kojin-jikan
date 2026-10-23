@@ -9,11 +9,16 @@ import { renderRecibos } from './pages/recibos.js';
 import { renderDespesas } from './pages/despesas.js';
 import { renderDeclaracao } from './pages/declaracao.js';
 import { renderHistorico } from './pages/historico.js';
+import { renderGestorDashboard } from './pages/gestor-dashboard.js';
+import { renderGestorTrabalhadores } from './pages/gestor-trabalhadores.js';
 
 // Registrar todas as rotas
 registerRoute('/login', renderLogin);
 registerRoute('/cadastro', renderCadastro);
 registerRoute('/dashboard', renderDashboard);
+registerRoute('/gestor-dashboard', renderGestorDashboard);
+registerRoute('/gestor-trabalhadores', renderGestorTrabalhadores);
+registerRoute('/gestor-trabalhador-form', renderGestorTrabalhadores);
 registerRoute('/configuracoes', renderConfiguracoes);
 registerRoute('/registro-horas', renderRegistroHoras);
 registerRoute('/recibos', renderRecibos);

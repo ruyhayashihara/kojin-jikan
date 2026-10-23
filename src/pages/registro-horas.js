@@ -3,6 +3,8 @@ import { navigate } from '../router.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 import { classifyDesconto } from '../classify-desconto.js';
 import { exportarMesPDF } from '../pdf-export.js';
+import { escapeHtml } from '../security.js';
+import { loadOrInitTrabalhadores, getRegistrosForWorkerMonth } from '../mock-data.js';
 
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const DIAS_SEMANA_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -192,11 +194,35 @@ export async function renderRegistroHoras(app) {
   if (navYear) { selectedYear = parseInt(navYear); sessionStorage.removeItem('keiro_nav_year'); }
 
   // State
+  const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+  let listaTrabalhadores = [];
+  let selectedWorkerId = sessionStorage.getItem('keiro_gestor_selected_worker') || '';
+  let selectedWorker = null;
+
   let perfil = null;
   let registros = {}; // key: day number -> record
   let descontos = [];  // array of desconto objects
   let valorHora = 0;
   let perfilValorHora = 0;
+
+  // Carrega trabalhadores quando em modo Gestor (ou inicializa os 10 fictícios)
+  async function loadTrabalhadoresGestor() {
+    if (!isGestor) return;
+    try {
+      const res = await loadOrInitTrabalhadores(userId, supabase);
+      listaTrabalhadores = res.trabalhadores || [];
+      if (selectedWorkerId) {
+        selectedWorker = listaTrabalhadores.find(w => w.id === selectedWorkerId) || null;
+      }
+      if (!selectedWorker && listaTrabalhadores.length > 0) {
+        selectedWorker = listaTrabalhadores[0];
+        selectedWorkerId = selectedWorker.id;
+        sessionStorage.setItem('keiro_gestor_selected_worker', selectedWorkerId);
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar lista de trabalhadores:', e);
+    }
+  }
 
   // Load user profile for default valor_hora
   async function loadPerfil() {
@@ -211,13 +237,33 @@ export async function renderRegistroHoras(app) {
 
   // Load registros for selected month
   async function loadRegistros() {
-    const { data } = await supabase
+    registros = {};
+
+    // Se estiver em modo gestor, busca registros (com suporte aos 12 meses de mock ~250h/mês)
+    if (isGestor && selectedWorkerId) {
+      const recs = await getRegistrosForWorkerMonth(selectedWorkerId, userId, selectedYear, selectedMonth, supabase);
+      if (recs && recs.length > 0) {
+        recs.forEach(r => {
+          const day = new Date(r.data).getDate();
+          registros[day] = r;
+        });
+        return;
+      }
+    }
+
+    let query = supabase
       .from('registro_diario')
       .select('*')
-      .eq('usuario_id', userId)
       .eq('ano', selectedYear)
       .eq('mes', selectedMonth);
-    registros = {};
+
+    if (isGestor && selectedWorkerId) {
+      query = query.eq('trabalhador_id', selectedWorkerId);
+    } else {
+      query = query.eq('usuario_id', userId);
+    }
+
+    const { data } = await query;
     if (data) {
       data.forEach(r => {
         const day = new Date(r.data).getDate();
@@ -239,6 +285,10 @@ export async function renderRegistroHoras(app) {
 
   // Load resumo for valor_hora override
   async function loadResumo() {
+    if (isGestor && selectedWorker) {
+      valorHora = selectedWorker.valor_hora || perfilValorHora || 0;
+      return;
+    }
     const { data } = await supabase
       .from('resumo_mensal')
       .select('valor_hora')
@@ -573,46 +623,27 @@ export async function renderRegistroHoras(app) {
       let txtIntervalo = '-';
       if (intervalo) {
         const [ih, im] = intervalo.split(':');
-        txtIntervalo = `${parseInt(ih) * 60 + parseInt(im)} 分`;
+        const minTotais = parseInt(ih) * 60 + parseInt(im);
+        txtIntervalo = minTotais > 0 ? `${minTotais}分` : '-';
       }
-      let txtTotal = total > 0 ? `${formatHours(total)}` : '-';
+      let txtTotal = total > 0 ? `${formatHoursVal(total)}` : '-';
       if (obs) {
         txtTotal += ' *';
       }
 
-      // Horas extras formatadas
+      // Horas extras formatadas (sem sufixo 'h' para compacidade)
       const txtExtra = diaVals.horasExtras > 0
-        ? `<span class="badge-extra" title="残業: ${formatHours(diaVals.horasExtras)} (+25%)">${formatHours(diaVals.horasExtras)}</span>`
+        ? `<span class="badge-extra" title="残業: ${formatHoursVal(diaVals.horasExtras)}h (+25%)">${formatHoursVal(diaVals.horasExtras)}</span>`
         : '<span style="color: var(--color-text-muted);">—</span>';
 
-      // Horas noturnas formatadas
+      // Horas noturnas formatadas (sem sufixo 'h' para compacidade)
       const txtNoturno = diaVals.horasNoturnas > 0
-        ? `<span class="badge-noturno" title="深夜 (22h〜5h): ${formatHours(diaVals.horasNoturnas)} (+25%)">${formatHours(diaVals.horasNoturnas)}</span>`
+        ? `<span class="badge-noturno" title="深夜 (22h〜5h): ${formatHoursVal(diaVals.horasNoturnas)}h (+25%)">${formatHoursVal(diaVals.horasNoturnas)}</span>`
         : '<span style="color: var(--color-text-muted);">—</span>';
 
       const txtSubtotal = (hasData && diaVals.subtotal > 0)
         ? `¥${Math.round(diaVals.subtotal).toLocaleString('ja-JP')}`
         : '-';
-
-      let actionHtml = '';
-      if (hasData) {
-        actionHtml = `
-          <div class="row-actions" style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
-            <button class="btn-edit-row" data-day="${d}" title="Editar" style="background: none; border: none; cursor: pointer; color: #3b82f6; display: flex; align-items: center; padding: 2px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            </button>
-            <button class="btn-delete-row" data-day="${d}" title="Excluir" style="background: none; border: none; cursor: pointer; color: #ef4444; display: flex; align-items: center; padding: 2px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
-            </button>
-          </div>
-        `;
-      } else {
-        actionHtml = `
-          <div class="row-actions" style="display: flex; justify-content: center; align-items: center;">
-            <span style="color: #3b82f6; font-size: 1.15rem; font-weight: bold; line-height: 1;">+</span>
-          </div>
-        `;
-      }
 
       const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[dow] : DIAS_SEMANA[dow];
 
@@ -628,7 +659,6 @@ export async function renderRegistroHoras(app) {
           <td class="col-extra" style="text-align: center;">${txtExtra}</td>
           <td class="col-noturno" style="text-align: center;">${txtNoturno}</td>
           <td class="col-subtotal" style="text-align: center; font-weight: 600;">${txtSubtotal}</td>
-          <td class="col-acoes" style="text-align: center; width: 70px;">${actionHtml}</td>
         </tr>
       `;
     }
@@ -637,6 +667,7 @@ export async function renderRegistroHoras(app) {
 
   // Full render
   async function renderPage() {
+    await loadTrabalhadoresGestor();
     await Promise.all([loadPerfil(), loadRegistros(), loadDescontos()]);
     await loadResumo();
 
@@ -658,6 +689,33 @@ export async function renderRegistroHoras(app) {
               <p>Controle de horas trabalhadas — 勤務時間記録</p>
             </div>
 
+            ${isGestor ? `
+              <div class="card" style="margin-bottom: 1.25rem; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem; background: #1e293b; border: 1px solid #334155;">
+                <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+                  <span class="badge-role-gestor">Modo Gestor</span>
+                  <label for="gestor-worker-select" style="font-weight: 600; font-size: 0.85rem; margin: 0; color: #cbd5e1;">
+                    Trabalhador Selecionado:
+                  </label>
+                  <select id="gestor-worker-select" style="min-width: 260px; padding: 0.45rem 0.75rem; border-radius: 6px; background: #0f172a; border: 1px solid #475569; color: #f8fafc; font-size: 0.85rem; font-weight: 500;">
+                    ${listaTrabalhadores.length === 0 ? '<option value="">Nenhum trabalhador cadastrado</option>' : ''}
+                    ${listaTrabalhadores.map(w => `
+                      <option value="${w.id}" ${w.id === selectedWorkerId ? 'selected' : ''}>
+                        [${escapeHtml(w.codigo_trabalhador)}] ${escapeHtml(w.nome_alfabeto || w.nome_kanji)} (¥${(w.valor_hora || 0).toLocaleString('ja-JP')}/h)
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <a href="#/gestor-trabalhadores" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;">
+                    👥 Gerenciar Fichas (履歴書)
+                  </a>
+                  <a href="#/gestor-dashboard" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;">
+                    🏢 Painel Geral
+                  </a>
+                </div>
+              </div>
+            ` : ''}
+
             <div class="period-selectors card">
               <div class="selectors-wrapper">
                 <div class="selector-group">
@@ -678,19 +736,24 @@ export async function renderRegistroHoras(app) {
               </div>
             </div>
 
+            <!-- Dica visual de rolagem para dispositivos móveis -->
+            <div class="mobile-timesheet-hint">
+              <span>⟷</span>
+              <span>Deslize a tabela para os lados para visualizar horários, adicionais e subtotal</span>
+            </div>
+
             <div class="timesheet-wrapper card">
               <table class="timesheet-table">
                 <thead>
                   <tr>
-                    <th class="col-date">Data</th>
-                    <th class="col-time" style="text-align: center;">Entrada</th>
-                    <th class="col-time" style="text-align: center;">Saída</th>
-                    <th class="col-time" style="text-align: center;">Intervalo</th>
-                    <th class="col-total" style="text-align: center;">Total</th>
-                    <th class="col-extra" style="text-align: center;" title="残業時間 (8h超, +25%)">Extra (+25%)</th>
-                    <th class="col-noturno" style="text-align: center;" title="深夜労働 (22h〜5h, +25%)">Noturno (+25%)</th>
-                    <th class="col-subtotal" style="text-align: center;">¥ Subtotal</th>
-                    <th class="col-acoes" style="text-align: center;">Ações</th>
+                    <th class="col-date" title="日付 (Data)">日付</th>
+                    <th class="col-time" style="text-align: center;" title="出勤 (Entrada / 始業)">出勤</th>
+                    <th class="col-time" style="text-align: center;" title="退勤 (Saída / 終業)">退勤</th>
+                    <th class="col-time" style="text-align: center;" title="休憩 (Intervalo)">休憩</th>
+                    <th class="col-total" style="text-align: center;" title="実働 (Total de horas trabalhadas)">実働</th>
+                    <th class="col-extra" style="text-align: center;" title="残業 (Horas extras > 8h, +25%)">残業</th>
+                    <th class="col-noturno" style="text-align: center;" title="深夜 (Adicional noturno 22h〜5h, +25%)">深夜</th>
+                    <th class="col-subtotal" style="text-align: center;" title="小計 (Subtotal diário em ¥)">小計</th>
                   </tr>
                 </thead>
                 <tbody id="timesheet-body">
@@ -794,9 +857,14 @@ export async function renderRegistroHoras(app) {
                   </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                  <button type="button" id="modal-btn-cancelar" style="background: transparent; border: 1px solid #404040; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">キャンセル (Cancelar)</button>
-                  <button type="button" id="modal-btn-salvar" style="background: #2563eb; border: none; color: #fff; padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">保存 (Salvar)</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1rem;">
+                  <button type="button" id="modal-btn-excluir" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: none;">
+                    🗑️ 削除 (Excluir)
+                  </button>
+                  <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+                    <button type="button" id="modal-btn-cancelar" style="background: transparent; border: 1px solid #404040; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">キャンセル (Cancelar)</button>
+                    <button type="button" id="modal-btn-salvar" style="background: #2563eb; border: none; color: #fff; padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">保存 (Salvar)</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -854,6 +922,13 @@ export async function renderRegistroHoras(app) {
     // Bind events
     bindSidebarEvents();
 
+    document.getElementById('gestor-worker-select')?.addEventListener('change', async (e) => {
+      selectedWorkerId = e.target.value;
+      sessionStorage.setItem('keiro_gestor_selected_worker', selectedWorkerId);
+      selectedWorker = listaTrabalhadores.find(w => w.id === selectedWorkerId) || null;
+      await renderPage();
+    });
+
     document.getElementById('sel-year').addEventListener('change', (e) => {
       selectedYear = parseInt(e.target.value);
       renderPage();
@@ -880,11 +955,21 @@ export async function renderRegistroHoras(app) {
       } catch (e) { }
 
       try {
+        const exportPerfil = (isGestor && selectedWorker) ? {
+          ...perfil,
+          nome: selectedWorker.nome_alfabeto || selectedWorker.nome_kanji,
+          nome_kanji: selectedWorker.nome_kanji,
+          nome_kana: selectedWorker.nome_kana,
+          numero_invoice: selectedWorker.numero_invoice,
+          codigo_trabalhador: selectedWorker.codigo_trabalhador,
+          valor_hora_padrao: selectedWorker.valor_hora || valorHora
+        } : perfil;
+
         await exportarMesPDF({
           ano: selectedYear,
           mes: selectedMonth,
           userId,
-          perfil,
+          perfil: exportPerfil,
           registros,
           descontos,
           valorHora,
@@ -990,7 +1075,9 @@ export async function renderRegistroHoras(app) {
       mTitle.textContent = `${dateStr} の記録`;
       mDay.value = day;
 
+      const btnExcluir = document.getElementById('modal-btn-excluir');
       if (record) {
+        if (btnExcluir) btnExcluir.style.display = 'inline-flex';
         // Registro existente
         mEnt.value = record.hora_entrada?.slice(0, 5) || '';
         mSai.value = record.hora_saida?.slice(0, 5) || '';
@@ -1034,6 +1121,7 @@ export async function renderRegistroHoras(app) {
         mTipoCalculo.value = 'por_hora';
         mValorDiario.value = valorHora;
         if (mAdicionalFimSemana) mAdicionalFimSemana.value = 0;
+        if (btnExcluir) btnExcluir.style.display = 'none';
         updateModalCalculations(true);
       }
 
@@ -1043,6 +1131,31 @@ export async function renderRegistroHoras(app) {
     document.getElementById('modal-btn-cancelar').addEventListener('click', () => {
       modal.style.display = 'none';
       mDay.value = '';
+    });
+
+    document.getElementById('modal-btn-excluir')?.addEventListener('click', async () => {
+      const day = parseInt(mDay.value);
+      if (!day) return;
+      const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[new Date(selectedYear, selectedMonth - 1, day).getDay()] : day;
+      if (confirm(`Deseja apagar os dados do dia ${day} (${diaNome})?`)) {
+        const btnExcluir = document.getElementById('modal-btn-excluir');
+        if (btnExcluir) btnExcluir.disabled = true;
+        try {
+          const row = registros[day];
+          if (row?.id) {
+            if (!String(row.id).startsWith('mock-')) {
+              await supabase.from('registro_diario').delete().eq('id', row.id);
+            }
+          }
+          delete registros[day];
+          modal.style.display = 'none';
+          mDay.value = '';
+          document.getElementById('timesheet-body').innerHTML = buildTimesheetRows();
+          updateCalculations();
+        } finally {
+          if (btnExcluir) btnExcluir.disabled = false;
+        }
+      }
     });
 
     document.getElementById('modal-btn-salvar').addEventListener('click', async () => {
@@ -1073,6 +1186,7 @@ export async function renderRegistroHoras(app) {
         } else {
           const payload = {
             usuario_id: userId,
+            trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
             data: dateStr,
             hora_entrada: entrada || null,
             hora_saida: saida || null,
@@ -1091,6 +1205,7 @@ export async function renderRegistroHoras(app) {
               console.warn('Erro ao atualizar com colunas de adicionais, tentando payload básico:', updateErr.message);
               const basicPayload = {
                 usuario_id: userId,
+                trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
                 data: dateStr,
                 hora_entrada: entrada || null,
                 hora_saida: saida || null,
@@ -1108,6 +1223,7 @@ export async function renderRegistroHoras(app) {
               console.warn('Erro ao inserir com colunas de adicionais, tentando payload básico:', insertErr.message);
               const basicPayload = {
                 usuario_id: userId,
+                trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
                 data: dateStr,
                 hora_entrada: entrada || null,
                 hora_saida: saida || null,
@@ -1137,26 +1253,8 @@ export async function renderRegistroHoras(app) {
       }
     });
 
-    document.getElementById('timesheet-body').addEventListener('click', async (e) => {
-      // Exclusão rápida de linha
-      const btnDel = e.target.closest('.btn-delete-row');
-      if (btnDel) {
-        e.stopPropagation();
-        const day = parseInt(btnDel.dataset.day);
-        const diaNome = DIAS_SEMANA_JA ? DIAS_SEMANA_JA[new Date(selectedYear, selectedMonth - 1, day).getDay()] : day;
-        if (confirm(`Apagar os dados do dia ${day} (${diaNome})?`)) {
-          const row = registros[day];
-          if (row?.id) {
-            await supabase.from('registro_diario').delete().eq('id', row.id);
-            delete registros[day];
-            document.getElementById('timesheet-body').innerHTML = buildTimesheetRows();
-            updateCalculations();
-          }
-        }
-        return;
-      }
-
-      // Ao clicar na linha ou no botão de editar, abre o modal de lançamento
+    document.getElementById('timesheet-body').addEventListener('click', (e) => {
+      // Ao clicar em qualquer parte da linha, abre o modal de apontamento/edição
       const row = e.target.closest('tr.timesheet-row');
       if (row) {
         const rowId = row.getAttribute('id');

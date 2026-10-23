@@ -311,3 +311,147 @@ BEGIN
   END IF;
 END $$;
 
+-- ============================================================
+-- 9. GESTÃO DE TRABALHADORES & MULTI-PERFIL (INDIVIDUAL & GESTOR)
+-- Ficha Cadastral no Padrão Japonês (履歴書・労働者名簿)
+-- ============================================================
+
+-- 9.1 Adiciona colunas de perfil e empresa em perfil_usuario
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='perfil_usuario' AND column_name='tipo_perfil') THEN
+    ALTER TABLE perfil_usuario ADD COLUMN tipo_perfil TEXT DEFAULT 'individual' CHECK (tipo_perfil IN ('individual', 'gestor'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='perfil_usuario' AND column_name='nome_empresa') THEN
+    ALTER TABLE perfil_usuario ADD COLUMN nome_empresa TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='perfil_usuario' AND column_name='telefone_corporativo') THEN
+    ALTER TABLE perfil_usuario ADD COLUMN telefone_corporativo TEXT;
+  END IF;
+END $$;
+
+-- 9.2 Criação da Tabela TRABALHADOR
+CREATE TABLE IF NOT EXISTS trabalhador (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  gestor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  codigo_trabalhador TEXT NOT NULL,
+  usuario_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+
+  -- Identificação Pessoal (履歴書基本情報)
+  nome_alfabeto TEXT NOT NULL,
+  nome_kanji TEXT,
+  nome_kana TEXT,
+  data_nascimento DATE,
+  genero TEXT DEFAULT 'Não informado',
+  foto_url TEXT,
+
+  -- Endereço no Japão (現住所)
+  cep TEXT,
+  provincia TEXT,
+  cidade_bairro TEXT,
+  endereco_numero TEXT,
+  telefone TEXT,
+  email TEXT,
+
+  -- Visto e Documentos Legais (在留資格・本人確認)
+  tipo_visto TEXT,
+  numero_zairyu TEXT,
+  validade_zairyu DATE,
+  nacionalidade TEXT DEFAULT 'Brasil',
+  my_number TEXT,
+  numero_invoice TEXT,
+
+  -- Contrato de Trabalho e Salário (雇用・契約情報)
+  tipo_contrato TEXT DEFAULT '業務委託',
+  cargo_funcao TEXT,
+  data_admissao DATE,
+  tipo_calculo TEXT DEFAULT 'por_hora' CHECK (tipo_calculo IN ('por_hora', 'fixo')),
+  valor_hora NUMERIC(10,2) DEFAULT 0,
+  valor_diario NUMERIC(10,2) DEFAULT 0,
+
+  -- Dados Bancários para Pagamento (給与振込先口座)
+  banco_nome TEXT,
+  banco_agencia TEXT,
+  banco_tipo_conta TEXT DEFAULT '普通',
+  banco_conta TEXT,
+  banco_titular TEXT,
+
+  -- Contato de Emergência (緊急連絡先)
+  contato_emergencia_nome TEXT,
+  contato_emergencia_parentesco TEXT,
+  contato_emergencia_telefone TEXT,
+
+  -- Licenças e Qualificações no Japão (免許・資格・特別教育)
+  qualificacoes_licencas JSONB DEFAULT '[]'::jsonb,
+
+  -- Status e Controle
+  observacoes TEXT,
+  ativo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE(gestor_id, codigo_trabalhador)
+);
+
+-- RLS para trabalhador
+ALTER TABLE trabalhador ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trabalhador' AND policyname = 'Gestor gerencia próprios trabalhadores') THEN
+    CREATE POLICY "Gestor gerencia próprios trabalhadores"
+      ON trabalhador FOR ALL
+      USING (auth.uid() = gestor_id)
+      WITH CHECK (auth.uid() = gestor_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trabalhador' AND policyname = 'Trabalhador visualiza próprio registro') THEN
+    CREATE POLICY "Trabalhador visualiza próprio registro"
+      ON trabalhador FOR SELECT
+      USING (auth.uid() = usuario_id);
+  END IF;
+END $$;
+
+-- 9.3 Adiciona trabalhador_id nas tabelas operacionais e qualificações em trabalhador
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='trabalhador' AND column_name='qualificacoes_licencas') THEN
+    ALTER TABLE trabalhador ADD COLUMN qualificacoes_licencas JSONB DEFAULT '[]'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='registro_diario' AND column_name='trabalhador_id') THEN
+    ALTER TABLE registro_diario ADD COLUMN trabalhador_id UUID REFERENCES trabalhador(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='desconto_mensal' AND column_name='trabalhador_id') THEN
+    ALTER TABLE desconto_mensal ADD COLUMN trabalhador_id UUID REFERENCES trabalhador(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='resumo_mensal' AND column_name='trabalhador_id') THEN
+    ALTER TABLE resumo_mensal ADD COLUMN trabalhador_id UUID REFERENCES trabalhador(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- 9.4 Trigger automático para criação do perfil ao registrar usuário no Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.perfil_usuario (id, nome, tipo_perfil, nome_empresa)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nome', ''),
+    COALESCE(NEW.raw_user_meta_data->>'tipo_perfil', 'individual'),
+    NEW.raw_user_meta_data->>'nome_empresa'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    nome = COALESCE(EXCLUDED.nome, perfil_usuario.nome),
+    tipo_perfil = COALESCE(EXCLUDED.tipo_perfil, perfil_usuario.tipo_perfil),
+    nome_empresa = COALESCE(EXCLUDED.nome_empresa, perfil_usuario.nome_empresa);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+
