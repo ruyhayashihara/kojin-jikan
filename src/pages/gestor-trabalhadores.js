@@ -189,15 +189,17 @@ export async function renderGestorTrabalhadores(app) {
                   <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                     <strong style="color: #f8fafc; font-size: 0.92rem;">${escapeHtml(statusPlano.nomePlano)}</strong>
                     <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
-                      ${statusPlano.isPro ? 'Cadastros Ilimitados Liberados' : `${statusPlano.totalCadastrados} de ${statusPlano.limite} cadastros utilizados`}
+                      ${statusPlano.isAdmin ? '👑 Acesso Total Administrador' : (statusPlano.isPro ? 'Cadastros Ilimitados Liberados' : `${statusPlano.totalCadastrados} de ${statusPlano.limite} cadastros utilizados`)}
                     </span>
                   </div>
                   <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 3px;">
-                    ${statusPlano.isPro
-                      ? `Chave ativa: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO-ILIMITADO')}</code> (Uso Único Anti-Fraude Vinculado)`
-                      : (statusPlano.atingiuLimite
-                        ? `<span style="color: #fca5a5; font-weight: 600;">Limite de 5 trabalhadores atingido!</span> Para cadastrar mais trabalhadores, ative sua chave de liberação.`
-                        : `Você tem <strong>${statusPlano.restantes}</strong> cadastro(s) livre(s) restante(s) na sua conta de gestor.`)}
+                    ${statusPlano.isAdmin
+                      ? `<span style="color: #38bdf8; font-weight: 600;">Conta de Administrador do Sistema</span> — Acesso total e cadastros ilimitados liberados sem necessidade de chave.`
+                      : (statusPlano.isPro
+                        ? `Chave ativa: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO-ILIMITADO')}</code> (Uso Único Anti-Fraude Vinculado)`
+                        : (statusPlano.atingiuLimite
+                          ? `<span style="color: #fca5a5; font-weight: 600;">Limite de 5 trabalhadores atingido!</span> Para cadastrar mais trabalhadores, ative sua chave de liberação.`
+                          : `Você tem <strong>${statusPlano.restantes}</strong> cadastro(s) livre(s) restante(s) na sua conta de gestor.`))}
                   </div>
                 </div>
               </div>

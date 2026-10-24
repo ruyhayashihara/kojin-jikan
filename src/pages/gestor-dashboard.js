@@ -123,15 +123,17 @@ export async function renderGestorDashboard(app) {
                   <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                     <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #f8fafc;">${escapeHtml(statusPlano.nomePlano)}</h3>
                     <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
-                      ${statusPlano.isPro ? 'Acesso Completo Ativado' : `${statusPlano.totalCadastrados} / ${statusPlano.limite} cadastros utilizados`}
+                      ${statusPlano.isAdmin ? '👑 Acesso Total Administrador' : (statusPlano.isPro ? 'Acesso Completo Ativado' : `${statusPlano.totalCadastrados} / ${statusPlano.limite} cadastros utilizados`)}
                     </span>
                   </div>
                   <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
-                    ${statusPlano.isPro
-                      ? `Chave exclusiva anti-fraude vinculada: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
-                      : (statusPlano.atingiuLimite
-                        ? `<span style="color: #fca5a5; font-weight: 600;">Limite gratuito de 5 cadastros atingido.</span> Desbloqueie cadastros ilimitados com sua chave única.`
-                        : `Plano básico gratuito com cota de até 5 cadastros (${statusPlano.restantes} restante${statusPlano.restantes === 1 ? '' : 's'}).`)}
+                    ${statusPlano.isAdmin
+                      ? `<span style="color: #38bdf8; font-weight: 600;">Conta de Administrador do Sistema</span> — Acesso total e cadastros ilimitados sem necessidade de chave.`
+                      : (statusPlano.isPro
+                        ? `Chave exclusiva anti-fraude vinculada: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
+                        : (statusPlano.atingiuLimite
+                          ? `<span style="color: #fca5a5; font-weight: 600;">Limite gratuito de 5 cadastros atingido.</span> Desbloqueie cadastros ilimitados com sua chave única.`
+                          : `Plano básico gratuito com cota de até 5 cadastros (${statusPlano.restantes} restante${statusPlano.restantes === 1 ? '' : 's'}).`))}
                   </p>
                 </div>
               </div>

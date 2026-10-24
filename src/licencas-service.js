@@ -393,12 +393,32 @@ export async function obterStatusPlano(user, role = 'gestor', totalCadastrados =
     return {
       plano: 'free',
       isPro: false,
+      isAdmin: false,
       nomePlano: role === 'gestor' ? 'Plano Básico (Gratuito)' : 'Plano Individual (Gratuito)',
       limite: role === 'gestor' ? 5 : 1,
       totalCadastrados,
       restantes: Math.max(0, (role === 'gestor' ? 5 : 1) - totalCadastrados),
       atingiuLimite: totalCadastrados >= (role === 'gestor' ? 5 : 1),
       percentualUso: Math.min(100, Math.round((totalCadastrados / (role === 'gestor' ? 5 : 1)) * 100))
+    };
+  }
+
+  // 0. USUÁRIO ADMINISTRADOR: Acesso completo e ilimitado irrestrito em todo o sistema (sem necessidade de chave)
+  if (isUsuarioAdmin(user)) {
+    return {
+      plano: 'admin',
+      isPro: true,
+      isAdmin: true,
+      tipoPlano: 'admin_ilimitado',
+      nomePlano: 'Administrador (Acesso Total Ilimitado)',
+      limite: Infinity,
+      isIlimitado: true,
+      totalCadastrados,
+      restantes: Infinity,
+      atingiuLimite: false,
+      percentualUso: 0,
+      chaveCodigo: 'ACESSO-ADMIN-MASTER',
+      ativadaEm: new Date().toISOString()
     };
   }
 

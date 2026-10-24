@@ -99,9 +99,13 @@ export function renderSidebar(activePage) {
   const navList = isGestor ? GESTOR_NAV_ITEMS : NAV_ITEMS;
 
   // Apenas administradores autorizados visualizam o item admin-licencas
+  // Administradores já possuem acesso completo e irrestrito (não necessitam de ativar chave)
   const secondaryList = SECONDARY_ITEMS.filter(item => {
     if (item.id === 'admin-licencas') {
       return isAdmin;
+    }
+    if (item.id === 'ativar-chave' && isAdmin) {
+      return false;
     }
     return true;
   });
@@ -322,6 +326,11 @@ export function bindSidebarEvents() {
       } else if (!adminStatus && adminItem) {
         // Se NÃO for admin, remove do menu imediatamente
         adminItem.remove();
+      }
+
+      if (adminStatus) {
+        // Administrador tem acesso completo liberado e não precisa do botão de ativar chave
+        document.getElementById('sidebar-action-ativar-chave')?.remove();
       }
     } else {
       sessionStorage.removeItem('keiro_is_admin');
