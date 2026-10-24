@@ -117,6 +117,23 @@ export async function renderConfiguracoes(app) {
               </button>
             </div>
           </form>
+
+          <!-- Zona de Perigo / Excluir Cadastro -->
+          <div class="card" style="margin-top: 2rem; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="margin: 0 0 0.25rem 0; font-size: 1rem; color: var(--color-danger); display: flex; align-items: center; gap: 0.5rem;">
+                  <span>⚠️</span> Excluir Dados do Cadastro
+                </h3>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-secondary);">
+                  Remove as informações do seu perfil, registros e dados cadastrais desta conta.
+                </p>
+              </div>
+              <button type="button" class="btn btn-outline" id="btn-excluir-conta-perfil" style="border-color: #ef4444; color: #ef4444;" title="Excluir cadastro e perfil">
+                🗑️ Excluir Meu Cadastro
+              </button>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -187,6 +204,34 @@ export async function renderConfiguracoes(app) {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Salvar Configurações';
+    }
+  });
+
+  // Ação de exclusão de cadastro / perfil do usuário
+  document.getElementById('btn-excluir-conta-perfil')?.addEventListener('click', async () => {
+    if (!confirm('Atenção: Deseja realmente excluir os dados do seu cadastro e perfil?\n\nEsta operação removerá as informações cadastrais e preferências vinculadas.')) {
+      return;
+    }
+    if (!confirm('Confirmação final: Deseja prosseguir com a exclusão definitiva do seu cadastro?')) {
+      return;
+    }
+
+    try {
+      if (userId) {
+        await supabase.from('perfil_usuario').delete().eq('id', userId);
+        await supabase.from('registro_diario').delete().eq('usuario_id', userId);
+        await supabase.from('despesa').delete().eq('usuario_id', userId);
+        await supabase.from('recibo').delete().eq('usuario_id', userId);
+      }
+      sessionStorage.clear();
+      localStorage.removeItem('keiro_mock_trabalhadores');
+      localStorage.removeItem('keiro_mock_registros');
+
+      alert('Cadastro excluído com sucesso.');
+      await supabase.auth.signOut();
+      navigate('/login');
+    } catch (err) {
+      alert('Erro ao excluir dados: ' + (err.message || err));
     }
   });
 }

@@ -98,9 +98,6 @@ export async function renderGestorDashboard(app) {
               <p>${MESES_NOME[currentMonth - 1]} ${currentYear} — Gestão de Equipe & Folha de Ponto (チーム管理)</p>
             </div>
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-              <button type="button" class="btn btn-outline" id="btn-seed-mock-data" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #6366f1; color: #a5b4fc;" title="Gerar ou resetar 10 funcionários fictícios com 1 ano de horas (~250h/mês)">
-                <span>🧪 Gerar 10 Funcionários (~250h/mês)</span>
-              </button>
               <button type="button" class="btn btn-primary" id="btn-dash-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem; ${statusPlano.atingiuLimite && !statusPlano.isPro ? 'background: #dc2626; border-color: #ef4444;' : ''}">
                 ${statusPlano.atingiuLimite && !statusPlano.isPro ? '🔒' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
                 <span>Cadastrar Trabalhador</span>
@@ -112,45 +109,45 @@ export async function renderGestorDashboard(app) {
             </div>
           </div>
 
-          <!-- Card de Status do Plano e Chave de Liberação -->
-          <div class="card" style="margin-bottom: 1.5rem; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : (statusPlano.atingiuLimite ? '#ef4444' : '#334155')}; background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.08)' : 'rgba(30, 41, 59, 0.6)')}; padding: 1.15rem 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <!-- Card de Status do Plano e Chave de Liberação (Padronizado Claro/Escuro) -->
+          <div class="plan-status-card ${statusPlano.isAdmin ? 'plan-admin' : (statusPlano.isPro ? 'plan-pro' : (statusPlano.atingiuLimite ? 'plan-limit' : 'plan-free'))}">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; width: 100%;">
               <div style="display: flex; align-items: center; gap: 0.85rem;">
-                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${statusPlano.isPro ? 'rgba(59, 130, 246, 0.2)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.2)')}; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                <div style="font-size: 1.6rem; line-height: 1;">
                   ${statusPlano.isPro ? '👑' : (statusPlano.atingiuLimite ? '🔒' : '💼')}
                 </div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #f8fafc;">${escapeHtml(statusPlano.nomePlano)}</h3>
-                    <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
+                    <span class="plan-card-title">${escapeHtml(statusPlano.nomePlano)}</span>
+                    <span class="${statusPlano.isPro ? 'badge-plan-pro' : (statusPlano.atingiuLimite ? 'badge-plan-limit' : 'badge-plan-free')}">
                       ${statusPlano.isAdmin ? '👑 Acesso Total Administrador' : (statusPlano.isPro ? 'Acesso Completo Ativado' : `${statusPlano.totalCadastrados} / ${statusPlano.limite} cadastros utilizados`)}
                     </span>
                   </div>
-                  <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+                  <div class="plan-card-desc">
                     ${statusPlano.isAdmin
-                      ? `<span style="color: #38bdf8; font-weight: 600;">Conta de Administrador do Sistema</span> — Acesso total e cadastros ilimitados sem necessidade de chave.`
+                      ? `<strong style="color: var(--color-primary);">Conta de Administrador do Sistema</strong> — Acesso total e cadastros ilimitados sem necessidade de chave.`
                       : (statusPlano.isPro
-                        ? `Chave exclusiva anti-fraude vinculada: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
+                        ? `Chave exclusiva anti-fraude vinculada: <code class="plan-code-badge">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
                         : (statusPlano.atingiuLimite
-                          ? `<span style="color: #fca5a5; font-weight: 600;">Limite gratuito de 5 cadastros atingido.</span> Desbloqueie cadastros ilimitados com sua chave única.`
+                          ? `<strong style="color: var(--color-danger);">Limite gratuito de 5 cadastros atingido.</strong> Desbloqueie cadastros ilimitados com sua chave única.`
                           : `Plano básico gratuito com cota de até 5 cadastros (${statusPlano.restantes} restante${statusPlano.restantes === 1 ? '' : 's'}).`))}
-                  </p>
+                  </div>
                 </div>
               </div>
 
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 ${statusPlano.isPro ? `
                   ${isUsuarioAdmin(user) ? `
-                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                       <span>⚙️ Painel de Licenças</span>
                     </a>
                   ` : `
-                    <span style="font-size: 0.82rem; color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; padding: 0.35rem 0.75rem; border-radius: 6px;">
+                    <span class="badge-plan-pro" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">
                       <span>✓ Plano PRO Ativo</span>
                     </span>
                   `}
                 ` : `
-                  <button type="button" class="btn btn-primary" id="btn-ativar-plano-dash" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'};">
+                  <button type="button" class="btn ${statusPlano.atingiuLimite ? 'btn-danger' : 'btn-primary'}" id="btn-ativar-plano-dash" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <span>🔑 Inserir Chave de Liberação</span>
                   </button>
                 `}
@@ -158,8 +155,8 @@ export async function renderGestorDashboard(app) {
             </div>
 
             ${!statusPlano.isPro ? `
-              <div style="margin-top: 0.85rem; background: #020617; border-radius: 6px; height: 8px; overflow: hidden; border: 1px solid #1e293b;">
-                <div style="width: ${statusPlano.percentualUso}%; height: 100%; background: ${statusPlano.atingiuLimite ? '#ef4444' : (statusPlano.percentualUso > 60 ? '#f59e0b' : '#3b82f6')}; transition: width 0.3s ease;"></div>
+              <div class="plan-progress-track" style="width: 100%;">
+                <div style="width: ${statusPlano.percentualUso}%; height: 100%; background: ${statusPlano.atingiuLimite ? 'var(--color-danger)' : (statusPlano.percentualUso > 60 ? 'var(--color-warning)' : 'var(--color-primary)')}; transition: width 0.3s ease;"></div>
               </div>
             ` : ''}
           </div>
@@ -170,12 +167,12 @@ export async function renderGestorDashboard(app) {
               <span>⚠️</span>
               <span>Atenção: Validade de Visto (在留カード期限警告)</span>
             </div>
-            <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.75rem;">
+            <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.75rem;">
               Há trabalhadores com visto de permanência expirado ou com vencimento nos próximos 60 dias:
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 0.6rem;">
               ${alertasVisto.map(a => `
-                <div style="background: #1e293b; border: 1px solid ${a.vencido ? '#ef4444' : '#f59e0b'}; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.82rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="background: var(--color-surface); border: 1px solid ${a.vencido ? '#ef4444' : '#f59e0b'}; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.82rem; display: flex; align-items: center; gap: 0.5rem;">
                   <span class="badge-worker-id">${escapeHtml(a.codigo)}</span>
                   <strong>${escapeHtml(a.nome)}</strong>
                   <span style="color: ${a.vencido ? '#f87171' : '#fbbf24'}; font-weight: 600;">
@@ -236,9 +233,9 @@ export async function renderGestorDashboard(app) {
             </div>
 
             ${trabalhadores.length === 0 ? `
-              <div style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
+              <div style="text-align: center; padding: 2.5rem 1rem; color: var(--color-text-secondary);">
                 <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">👥</div>
-                <div style="font-size: 1.1rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.5rem;">Nenhum trabalhador cadastrado ainda</div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.5rem;">Nenhum trabalhador cadastrado ainda</div>
                 <p style="font-size: 0.85rem; max-width: 480px; margin: 0 auto 1.5rem auto;">
                   Cadastre prestadores ou funcionários com ID exclusivo e dados da ficha cadastral japonesa (履歴書) para administrar horas e pagamentos.
                 </p>
@@ -268,22 +265,22 @@ export async function renderGestorDashboard(app) {
                           <td><span class="badge-worker-id">${escapeHtml(t.codigo_trabalhador)}</span></td>
                           <td>
                             <strong>${escapeHtml(t.nome_alfabeto)}</strong>
-                            ${t.nome_kanji ? `<div style="font-size: 0.75rem; color: #94a3b8;">${escapeHtml(t.nome_kanji)} ${t.nome_kana ? `(${escapeHtml(t.nome_kana)})` : ''}</div>` : ''}
+                            ${t.nome_kanji ? `<div style="font-size: 0.75rem; color: var(--color-text-secondary);">${escapeHtml(t.nome_kanji)} ${t.nome_kana ? `(${escapeHtml(t.nome_kana)})` : ''}</div>` : ''}
                           </td>
                           <td>
                             <div style="font-size: 0.82rem; font-weight: 500;">${escapeHtml(t.tipo_contrato || '業務委託')}</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">${escapeHtml(t.cargo_funcao || 'Prestador de Serviço')}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">${escapeHtml(t.cargo_funcao || 'Prestador de Serviço')}</div>
                           </td>
                           <td class="col-num">¥${(t.valor_hora || 0).toLocaleString('ja-JP')}/h</td>
                           <td class="col-num" style="font-weight: 600;">${formatHours(h)}</td>
                           <td>
-                            <span style="font-size: 0.8rem; background: #334155; padding: 2px 6px; border-radius: 4px; color: #e2e8f0;">
+                            <span style="font-size: 0.8rem; background: var(--color-surface); border: 1px solid var(--color-border); padding: 2px 6px; border-radius: 4px; color: var(--color-text-secondary);">
                               ${escapeHtml(t.tipo_visto || 'Não inf.')}
                             </span>
                           </td>
                           <td style="text-align: center;">
                             <div style="display: flex; gap: 0.35rem; justify-content: center;">
-                              <button type="button" class="btn btn-outline btn-quick-rirekisho" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 PDF)">
+                              <button type="button" class="btn btn-outline btn-quick-rirekisho" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #0284c7;" title="Exportar Currículo Japonês (履歴書 PDF)">
                                 履歴書
                               </button>
                               <a href="#/gestor-trabalhadores?editar=${t.id}" class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" title="Ver Ficha Cadastral">
@@ -340,13 +337,6 @@ export async function renderGestorDashboard(app) {
         navigate(`/gestor-trabalhadores?editar=${workerId}`);
       }
     });
-  });
-
-  document.getElementById('btn-seed-mock-data')?.addEventListener('click', () => {
-    if (confirm('Deseja gerar os 10 funcionários fictícios no Japão com 1 ano completo de horas trabalhadas (~250h/mês)?')) {
-      resetAndRegenerateMockData(user.id);
-      renderGestorDashboard(app);
-    }
   });
 
   // Botão Cadastrar Trabalhador no Header do Dashboard

@@ -127,43 +127,43 @@ export async function renderDashboard(app) {
               <p>${MESES_NOME[currentMonth - 1]} ${currentYear} — ダッシュボード</p>
             </div>
             ${statusPlano.isAdmin ? `
-              <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem;">
                 <span>⚙️ Painel de Licenças (Admin)</span>
               </a>
             ` : (!statusPlano.isPro ? `
-              <button type="button" class="btn btn-outline" id="btn-ind-ativar-chave" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <button type="button" class="btn btn-primary" id="btn-ind-ativar-chave" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem;">
                 <span>🔑 Ativar Chave PRO</span>
               </button>
             ` : `
-              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <span class="badge-plan-pro" style="font-size: 0.8rem; padding: 5px 12px; display: inline-flex; align-items: center; gap: 0.35rem;">
                 <span>👑</span> Individual PRO Ativado
               </span>
             `)}
           </div>
 
-          <!-- Banner de Status do Perfil Individual -->
-          <div class="card" style="margin-bottom: 1.5rem; padding: 0.85rem 1.25rem; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : '#334155'}; background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)' : 'rgba(30, 41, 59, 0.4)'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
-            <div style="display: flex; align-items: center; gap: 0.65rem;">
-              <span style="font-size: 1.3rem;">${statusPlano.isPro ? '👑' : '👤'}</span>
+          <!-- Banner de Status do Perfil Individual (Padronizado Claro/Escuro) -->
+          <div class="plan-status-card ${statusPlano.isAdmin ? 'plan-admin' : (statusPlano.isPro ? 'plan-pro' : 'plan-free')}">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 1.4rem;">${statusPlano.isPro ? '👑' : '👤'}</span>
               <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                  <strong style="color: #f8fafc; font-size: 0.9rem;">${escapeHtml(statusPlano.nomePlano)}</strong>
-                  <span class="badge" style="background: ${statusPlano.isPro ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(59, 130, 246, 0.2); color: #60a5fa;'}; font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;">
+                  <span class="plan-card-title">${escapeHtml(statusPlano.nomePlano)}</span>
+                  <span class="${statusPlano.isPro ? 'badge-plan-pro' : 'badge-plan-free'}">
                     ${statusPlano.isAdmin ? '👑 Administrador Master' : (statusPlano.isPro ? 'Recursos PRO Liberados' : '1 Cadastro Individual (Autônomo)')}
                   </span>
                 </div>
-                <span style="font-size: 0.75rem; color: #94a3b8;">
+                <div class="plan-card-desc">
                   ${statusPlano.isAdmin
-                    ? '<strong style="color: #38bdf8;">Conta de Administrador do Sistema</strong> — Acesso completo e irrestrito sem necessidade de chave.'
+                    ? '<strong style="color: var(--color-primary);">Conta de Administrador do Sistema</strong> — Acesso completo e irrestrito sem necessidade de chave.'
                     : (statusPlano.isPro
-                      ? `Chave exclusiva vinculada: <code style="color: #38bdf8;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
+                      ? `Chave exclusiva vinculada: <code class="plan-code-badge">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
                       : 'Acesso às suas próprias horas trabalhadas e recibos individuais liberado.')}
-                </span>
+                </div>
               </div>
             </div>
             ${!statusPlano.isPro ? `
-              <button type="button" class="btn btn-outline" id="btn-ind-ativar-chave-banner" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; border-color: #3b82f6; color: #93c5fd;">
-                Inserir Chave
+              <button type="button" class="btn btn-outline" id="btn-ind-ativar-chave-banner" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+                🔑 Inserir Chave PRO
               </button>
             ` : ''}
           </div>

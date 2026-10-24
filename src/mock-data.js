@@ -736,3 +736,42 @@ export function resetAndRegenerateMockData(userId) {
   setStoredRegistros(allRecords);
   return { trabalhadores: novosTrabalhadores, recordsCount: Object.keys(allRecords).length };
 }
+
+/**
+ * Exclui um trabalhador e seus registros associados (cache local e Supabase)
+ */
+export async function excluirTrabalhador(workerId, userId, supabase) {
+  if (!workerId) return false;
+
+  // 1. Remove do cache local
+  try {
+    const list = getStoredTrabalhadores() || [];
+    const updated = list.filter(t => t.id !== workerId);
+    setStoredTrabalhadores(updated);
+
+    // Remove registros de horas associados a este trabalhador
+    const records = getStoredRegistros();
+    if (records) {
+      Object.keys(records).forEach(k => {
+        if (k.startsWith(workerId + '_') || records[k]?.trabalhador_id === workerId) {
+          delete records[k];
+        }
+      });
+      setStoredRegistros(records);
+    }
+  } catch (e) {
+    console.warn('Erro ao excluir do cache local:', e);
+  }
+
+  // 2. Se Supabase estiver conectado, remove do banco
+  if (supabase) {
+    try {
+      await supabase.from('registro_diario').delete().eq('trabalhador_id', workerId);
+      await supabase.from('trabalhador').delete().eq('id', workerId);
+    } catch (e) {
+      console.warn('Erro ao excluir do Supabase:', e);
+    }
+  }
+
+  return true;
+}

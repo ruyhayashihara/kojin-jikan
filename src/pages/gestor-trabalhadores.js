@@ -6,7 +6,8 @@ import {
   loadOrInitTrabalhadores,
   resetAndRegenerateMockData,
   getStoredTrabalhadores,
-  setStoredTrabalhadores
+  setStoredTrabalhadores,
+  excluirTrabalhador
 } from '../mock-data.js';
 import { prepararDadosRirekisho, traduzirCargo, gerarMotivacaoPolida, traduzirComGemini, romanToKatakanaApprox } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
@@ -171,9 +172,6 @@ export async function renderGestorTrabalhadores(app) {
                 <p>Ficha cadastral completa baseada no padrão de contratação japonês (履歴書・雇用管理)</p>
               </div>
               <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
-                <button type="button" class="btn btn-outline" id="btn-seed-mock-trabalhadores" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #6366f1; color: #a5b4fc;" title="Gerar ou resetar 10 funcionários fictícios com 1 ano de horas (~250h/mês)">
-                  <span>🧪 Gerar 10 Funcionários Demo</span>
-                </button>
                 <button type="button" class="btn btn-primary" id="btn-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem; ${statusPlano.atingiuLimite && !statusPlano.isPro ? 'border-color: #ef4444; background: #dc2626;' : ''}">
                   ${statusPlano.atingiuLimite && !statusPlano.isPro ? '🔒' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
                   <span>Cadastrar Novo Trabalhador (履歴書)</span>
@@ -181,24 +179,24 @@ export async function renderGestorTrabalhadores(app) {
               </div>
             </div>
 
-            <!-- Banner de Controle de Cotas e Licença -->
-            <div id="quota-banner-gestor" style="background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.08)')}; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : (statusPlano.atingiuLimite ? '#ef4444' : '#334155')}; border-radius: 10px; padding: 0.9rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
+            <!-- Banner de Controle de Cotas e Licença (Padronizado Claro/Escuro) -->
+            <div id="quota-banner-gestor" class="plan-status-card ${statusPlano.isAdmin ? 'plan-admin' : (statusPlano.isPro ? 'plan-pro' : (statusPlano.atingiuLimite ? 'plan-limit' : 'plan-free'))}">
               <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <span style="font-size: 1.5rem;">${statusPlano.isPro ? '👑' : (statusPlano.atingiuLimite ? '🔒' : '📊')}</span>
                 <div>
                   <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <strong style="color: #f8fafc; font-size: 0.92rem;">${escapeHtml(statusPlano.nomePlano)}</strong>
-                    <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
+                    <span class="plan-card-title">${escapeHtml(statusPlano.nomePlano)}</span>
+                    <span class="${statusPlano.isPro ? 'badge-plan-pro' : (statusPlano.atingiuLimite ? 'badge-plan-limit' : 'badge-plan-free')}">
                       ${statusPlano.isAdmin ? '👑 Acesso Total Administrador' : (statusPlano.isPro ? 'Cadastros Ilimitados Liberados' : `${statusPlano.totalCadastrados} de ${statusPlano.limite} cadastros utilizados`)}
                     </span>
                   </div>
-                  <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 3px;">
+                  <div class="plan-card-desc">
                     ${statusPlano.isAdmin
-                      ? `<span style="color: #38bdf8; font-weight: 600;">Conta de Administrador do Sistema</span> — Acesso total e cadastros ilimitados liberados sem necessidade de chave.`
+                      ? `<strong style="color: var(--color-primary);">Conta de Administrador do Sistema</strong> — Acesso total e cadastros ilimitados liberados sem necessidade de chave.`
                       : (statusPlano.isPro
-                        ? `Chave ativa: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO-ILIMITADO')}</code> (Uso Único Anti-Fraude Vinculado)`
+                        ? `Chave ativa: <code class="plan-code-badge">${escapeHtml(statusPlano.chaveCodigo || 'PRO-ILIMITADO')}</code> (Uso Único Anti-Fraude Vinculado)`
                         : (statusPlano.atingiuLimite
-                          ? `<span style="color: #fca5a5; font-weight: 600;">Limite de 5 trabalhadores atingido!</span> Para cadastrar mais trabalhadores, ative sua chave de liberação.`
+                          ? `<strong style="color: var(--color-danger);">Limite de 5 trabalhadores atingido!</strong> Para cadastrar mais trabalhadores, ative sua chave de liberação.`
                           : `Você tem <strong>${statusPlano.restantes}</strong> cadastro(s) livre(s) restante(s) na sua conta de gestor.`))}
                   </div>
                 </div>
@@ -207,16 +205,16 @@ export async function renderGestorTrabalhadores(app) {
               <div>
                 ${statusPlano.isPro ? `
                   ${isUsuarioAdmin(user) ? `
-                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                       <span>⚙️ Gerenciar Licenças</span>
                     </a>
                   ` : `
-                    <span style="font-size: 0.78rem; color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; padding: 0.35rem 0.75rem; border-radius: 6px;">
+                    <span class="badge-plan-pro" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
                       <span>✓ Acesso PRO Ilimitado</span>
                     </span>
                   `}
                 ` : `
-                  <button type="button" class="btn btn-primary" id="btn-ativar-chave-banner" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+                  <button type="button" class="btn ${statusPlano.atingiuLimite ? 'btn-danger' : 'btn-primary'}" id="btn-ativar-chave-banner" style="font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <span>🔑 Inserir Chave de Liberação</span>
                   </button>
                 `}
@@ -285,9 +283,12 @@ export async function renderGestorTrabalhadores(app) {
               </div>
               <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
                 <button type="button" class="btn btn-outline btn-cancel-action">Cancelar</button>
-                <button type="button" class="btn btn-outline" id="btn-export-rirekisho-form" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #38bdf8; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+                <button type="button" class="btn btn-outline" id="btn-export-rirekisho-form" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #0284c7; color: #0284c7;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   <span>Exportar 履歴書 (PDF)</span>
+                </button>
+                <button type="button" class="btn btn-outline" id="btn-excluir-trabalhador-form-topo" style="display: none; align-items: center; gap: 0.4rem; border-color: #ef4444; color: #ef4444;" title="Excluir este cadastro de trabalhador">
+                  <span>🗑️ Excluir</span>
                 </button>
                 <button type="button" class="btn btn-primary" id="btn-salvar-topo" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -645,16 +646,23 @@ export async function renderGestorTrabalhadores(app) {
               </div>
 
               <!-- Botões de Ação Inferiores -->
-              <div style="display: flex; justify-content: flex-end; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--color-border); margin-bottom: 2rem; flex-wrap: wrap;">
-                <button type="button" class="btn btn-outline btn-cancel-action" style="min-width: 120px;">Cancelar</button>
-                <button type="button" class="btn btn-outline" id="btn-export-rirekisho-bottom" style="display: inline-flex; align-items: center; gap: 0.45rem; border-color: #38bdf8; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  <span>Exportar 履歴書 (PDF)</span>
-                </button>
-                <button type="submit" class="btn btn-primary" id="btn-salvar-form" style="min-width: 180px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                  <span>Salvar Ficha Cadastral</span>
-                </button>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--color-border); margin-bottom: 2rem; flex-wrap: wrap;">
+                <div>
+                  <button type="button" class="btn btn-outline" id="btn-excluir-trabalhador-form-bottom" style="display: none; align-items: center; gap: 0.45rem; border-color: #ef4444; color: #ef4444;" title="Excluir este cadastro de trabalhador">
+                    <span>🗑️ Excluir Trabalhador</span>
+                  </button>
+                </div>
+                <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-outline btn-cancel-action" style="min-width: 120px;">Cancelar</button>
+                  <button type="button" class="btn btn-outline" id="btn-export-rirekisho-bottom" style="display: inline-flex; align-items: center; gap: 0.45rem; border-color: #0284c7; color: #0284c7;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>Exportar 履歴書 (PDF)</span>
+                  </button>
+                  <button type="submit" class="btn btn-primary" id="btn-salvar-form" style="min-width: 180px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <span>Salvar Ficha Cadastral</span>
+                  </button>
+                </div>
               </div>
             </form>
 
@@ -821,40 +829,43 @@ export async function renderGestorTrabalhadores(app) {
         <tr class="worker-row-clickable" data-worker-id="${t.id}" title="Clique para abrir a Ficha Cadastral de ${escapeHtml(t.nome_alfabeto)}">
           <td><span class="badge-worker-id">${escapeHtml(t.codigo_trabalhador)}</span></td>
           <td>
-            <div style="font-weight: 600; color: #f8fafc;">${escapeHtml(t.nome_alfabeto)}</div>
-            ${t.nome_kanji ? `<div style="font-size: 0.75rem; color: #94a3b8;">${escapeHtml(t.nome_kanji)} ${t.nome_kana ? `(${escapeHtml(t.nome_kana)})` : ''}</div>` : ''}
+            <div style="font-weight: 600; color: var(--color-text);">${escapeHtml(t.nome_alfabeto)}</div>
+            ${t.nome_kanji ? `<div style="font-size: 0.75rem; color: var(--color-text-secondary);">${escapeHtml(t.nome_kanji)} ${t.nome_kana ? `(${escapeHtml(t.nome_kana)})` : ''}</div>` : ''}
             ${Array.isArray(t.qualificacoes_licencas) && t.qualificacoes_licencas.length > 0 ? `
               <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
                 ${t.qualificacoes_licencas.slice(0, 3).map(l => `<span class="badge-mini-licenca" title="${escapeHtml(l.nome_ja || '')} ${l.nome_pt ? `(${escapeHtml(l.nome_pt)})` : ''}">${escapeHtml((l.nome_ja || l.nome_pt || '').split(' ')[0])}</span>`).join('')}
-                ${t.qualificacoes_licencas.length > 3 ? `<span class="badge-mini-licenca" style="opacity: 0.7; background: rgba(148, 163, 184, 0.2); color: #cbd5e1;">+${t.qualificacoes_licencas.length - 3}</span>` : ''}
+                ${t.qualificacoes_licencas.length > 3 ? `<span class="badge-mini-licenca" style="opacity: 0.7; background: rgba(148, 163, 184, 0.2); color: var(--color-text-secondary);">+${t.qualificacoes_licencas.length - 3}</span>` : ''}
               </div>
             ` : ''}
           </td>
           <td>
-            <div style="font-size: 0.8rem; color: #cbd5e1;">${escapeHtml(t.tipo_visto || 'Não inf.')}</div>
+            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">${escapeHtml(t.tipo_visto || 'Não inf.')}</div>
             ${visaStatus}
           </td>
           <td>
             <div style="font-size: 0.8rem; font-weight: 500;">${escapeHtml(t.tipo_contrato || '業務委託')}</div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">${escapeHtml(t.cargo_funcao || '—')}</div>
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">${escapeHtml(t.cargo_funcao || '—')}</div>
           </td>
           <td class="col-num">
             ${t.tipo_calculo === 'fixo' ? `¥${(t.valor_diario || 0).toLocaleString('ja-JP')}/dia` : `¥${(t.valor_hora || 0).toLocaleString('ja-JP')}/h`}
           </td>
-          <td style="font-size: 0.8rem; color: #94a3b8;">
+          <td style="font-size: 0.8rem; color: var(--color-text-secondary);">
             <div>${escapeHtml(t.telefone || '—')}</div>
-            <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(t.email || '')}</div>
+            <div style="font-size: 0.72rem; color: var(--color-text-light);">${escapeHtml(t.email || '')}</div>
           </td>
           <td style="text-align: center;">
-            <div style="display: flex; gap: 0.35rem; justify-content: center;">
-              <button type="button" class="btn btn-outline btn-rirekisho-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+            <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+              <button type="button" class="btn btn-outline btn-rirekisho-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #0284c7;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
                 履歴書
               </button>
-              <button type="button" class="btn btn-outline btn-edit-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 8px;" title="Editar Ficha Cadastral">
+              <button type="button" class="btn btn-outline btn-edit-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px;" title="Editar Ficha Cadastral">
                 Editar
               </button>
-              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 8px; border-color: #6366f1; color: #a5b4fc;" title="Ver e Apontar Horas">
+              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #6366f1; color: #6366f1;" title="Ver e Apontar Horas">
                 Horas
+              </button>
+              <button type="button" class="btn btn-outline btn-delete-worker" data-id="${t.id}" data-name="${escapeHtml(t.nome_alfabeto)}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #ef4444; color: #ef4444;" title="Excluir Trabalhador (削除)">
+                🗑️
               </button>
             </div>
           </td>
@@ -949,7 +960,13 @@ export async function renderGestorTrabalhadores(app) {
     formSuccess.style.display = 'none';
     form.reset();
 
+    const btnDelTopo = document.getElementById('btn-excluir-trabalhador-form-topo');
+    const btnDelBottom = document.getElementById('btn-excluir-trabalhador-form-bottom');
+
     if (worker) {
+      if (btnDelTopo) btnDelTopo.style.display = 'inline-flex';
+      if (btnDelBottom) btnDelBottom.style.display = 'inline-flex';
+
       formTitle.textContent = `Editar Trabalhador: ${worker.codigo_trabalhador} — ${worker.nome_alfabeto || ''}`;
       formBadge.textContent = '履歴書編集';
       formBadge.className = 'badge-role-gestor';
@@ -1007,6 +1024,9 @@ export async function renderGestorTrabalhadores(app) {
       formBadge.textContent = '新規登録';
       formBadge.className = 'badge-role-gestor';
       formSubtitle.textContent = 'Ficha cadastral completa baseada no padrão de contratação japonês (履歴書・雇用管理)';
+
+      if (btnDelTopo) btnDelTopo.style.display = 'none';
+      if (btnDelBottom) btnDelBottom.style.display = 'none';
 
       document.getElementById('trab-id').value = '';
       // Sugere próximo código automático
@@ -1253,8 +1273,33 @@ export async function renderGestorTrabalhadores(app) {
     }
   });
 
+  // Função centralizada para exclusão de trabalhador
+  async function executarExclusaoTrabalhador(workerId) {
+    try {
+      await excluirTrabalhador(workerId, user.id, supabase);
+      trabalhadores = trabalhadores.filter(t => t.id !== workerId);
+      closeFormView();
+      renderGestorTrabalhadores(app);
+    } catch (err) {
+      alert('Erro ao excluir trabalhador: ' + (err.message || err));
+    }
+  }
+
   // Eventos de clique na tabela (delegation - toda a linha é clicável)
-  document.getElementById('lista-trabalhadores-body')?.addEventListener('click', (e) => {
+  document.getElementById('lista-trabalhadores-body')?.addEventListener('click', async (e) => {
+    // Se clicou no botão de Excluir Trabalhador
+    const btnDelete = e.target.closest('.btn-delete-worker');
+    if (btnDelete) {
+      e.stopPropagation();
+      const id = btnDelete.dataset.id;
+      const worker = trabalhadores.find(t => t.id === id);
+      const nome = worker ? worker.nome_alfabeto : (btnDelete.dataset.name || 'este trabalhador');
+      if (confirm(`Tem certeza que deseja excluir o cadastro de "${nome}"?\n\nEsta ação removerá a ficha cadastral e todos os registros de horas associados.`)) {
+        await executarExclusaoTrabalhador(id);
+      }
+      return;
+    }
+
     // Se clicou no botão de Exportar Rirekisho
     const btnRirekisho = e.target.closest('.btn-rirekisho-worker');
     if (btnRirekisho) {
@@ -1585,13 +1630,18 @@ export async function renderGestorTrabalhadores(app) {
     }
   });
 
-  // Botão de geração dos 10 funcionários de demonstração
-  document.getElementById('btn-seed-mock-trabalhadores')?.addEventListener('click', () => {
-    if (confirm('Deseja gerar os 10 funcionários fictícios no Japão com 1 ano completo de horas trabalhadas (~250h/mês)?')) {
-      resetAndRegenerateMockData(user.id);
-      renderGestorTrabalhadores(app);
+  // Ações de exclusão de cadastro a partir do formulário de edição
+  const handleExcluirForm = async () => {
+    const id = document.getElementById('trab-id')?.value;
+    if (!id) return;
+    const worker = trabalhadores.find(t => t.id === id);
+    const nome = worker ? worker.nome_alfabeto : 'este trabalhador';
+    if (confirm(`Tem certeza que deseja excluir o cadastro de "${nome}"?\n\nEsta ação removerá a ficha cadastral e todos os registros de horas associados.`)) {
+      await executarExclusaoTrabalhador(id);
     }
-  });
+  };
+  document.getElementById('btn-excluir-trabalhador-form-topo')?.addEventListener('click', handleExcluirForm);
+  document.getElementById('btn-excluir-trabalhador-form-bottom')?.addEventListener('click', handleExcluirForm);
 
   // Filtro de busca em tempo real
   const inputBusca = document.getElementById('filtro-busca');
