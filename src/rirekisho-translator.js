@@ -336,7 +336,13 @@ export function prepararDadosRirekisho(worker, options = {}) {
 
   // Cônjuge e Dependentes
   const parentesco = (worker.contato_emergencia_parentesco || '').toLowerCase();
-  const temConjuge = parentesco.includes('esposa') || parentesco.includes('marido') || parentesco.includes('cônjuge') || parentesco.includes('妻') || parentesco.includes('夫');
+  const temConjugeAuto = parentesco.includes('esposa') || parentesco.includes('marido') || parentesco.includes('cônjuge') || parentesco.includes('妻') || parentesco.includes('夫');
+
+  // Prioriza valor explícito passado nas opções do formulário/modal (ex: options.temConjuge: true/false)
+  const temConjuge = options.temConjuge !== undefined ? Boolean(options.temConjuge) : temConjugeAuto;
+  const obrigacaoConjuge = options.obrigacaoConjuge !== undefined
+    ? Boolean(options.obrigacaoConjuge)
+    : temConjuge;
 
   return {
     dataEmissao: dataHojeStr,
@@ -365,9 +371,9 @@ export function prepararDadosRirekisho(worker, options = {}) {
     motivacao: options.customMotivacao || gerarMotivacaoPolida(worker),
     tempoComutacaoHoras: options.tempoComutacaoHoras || '0',
     tempoComutacaoMin: options.tempoComutacaoMin || '45',
-    dependentes: options.dependentes !== undefined ? options.dependentes : (temConjuge ? '1' : '0'),
+    dependentes: options.dependentes !== undefined ? options.dependentes : (temConjugeAuto ? '1' : '0'),
     temConjuge: temConjuge,
-    obrigacaoConjuge: temConjuge,
+    obrigacaoConjuge: obrigacaoConjuge,
     desejosPessoais: options.customDesejos || gerarDesejosPessoais(worker),
     tipoVisto: traduzirVisto(worker.tipo_visto),
     nacionalidade: traduzirNacionalidade(worker.nacionalidade)

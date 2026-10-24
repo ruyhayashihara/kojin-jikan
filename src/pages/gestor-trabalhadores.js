@@ -684,7 +684,7 @@ export async function renderGestorTrabalhadores(app) {
                   </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
                   <div>
                     <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Dependentes (扶養家族数)</label>
                     <input type="number" id="modal-rir-dependentes" value="0" min="0" class="form-input" style="width: 100%; font-size: 0.85rem;" />
@@ -692,6 +692,13 @@ export async function renderGestorTrabalhadores(app) {
                   <div>
                     <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Possui Cônjuge (配偶者)</label>
                     <select id="modal-rir-conjuge" class="form-input" style="width: 100%; font-size: 0.85rem;">
+                      <option value="nao">Não (無)</option>
+                      <option value="sim">Sim (有)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Sustento Cônjuge (扶養義務)</label>
+                    <select id="modal-rir-obrigacao" class="form-input" style="width: 100%; font-size: 0.85rem;">
                       <option value="nao">Não (無)</option>
                       <option value="sim">Sim (有)</option>
                     </select>
@@ -1255,6 +1262,7 @@ export async function renderGestorTrabalhadores(app) {
   const modalRirComutacaoM = document.getElementById('modal-rir-comutacao-min');
   const modalRirDependentes = document.getElementById('modal-rir-dependentes');
   const modalRirConjuge = document.getElementById('modal-rir-conjuge');
+  const modalRirObrigacao = document.getElementById('modal-rir-obrigacao');
   const modalGeminiStatus = document.getElementById('modal-gemini-status');
 
   function preencherCamposModal(worker) {
@@ -1273,6 +1281,7 @@ export async function renderGestorTrabalhadores(app) {
     const temConj = parentesco.includes('esposa') || parentesco.includes('marido') || parentesco.includes('cônjuge') || parentesco.includes('妻') || parentesco.includes('夫');
     modalRirDependentes.value = temConj ? '1' : '0';
     modalRirConjuge.value = temConj ? 'sim' : 'nao';
+    if (modalRirObrigacao) modalRirObrigacao.value = temConj ? 'sim' : 'nao';
   }
 
   function abrirModalRirekisho(worker) {
@@ -1343,6 +1352,13 @@ export async function renderGestorTrabalhadores(app) {
     }
   });
 
+  modalRirConjuge?.addEventListener('change', () => {
+    const isSim = modalRirConjuge.value === 'sim';
+    if (modalRirObrigacao) {
+      modalRirObrigacao.value = isSim ? 'sim' : 'nao';
+    }
+  });
+
   document.getElementById('btn-gerar-pdf-rirekisho')?.addEventListener('click', () => {
     if (!activeRirekishoWorker) return;
 
@@ -1356,13 +1372,17 @@ export async function renderGestorTrabalhadores(app) {
       }
     } catch (e) { }
 
+    const isTemConjuge = modalRirConjuge?.value === 'sim';
+    const isObrigacao = modalRirObrigacao ? (modalRirObrigacao.value === 'sim') : isTemConjuge;
+
     const options = {
       customMotivacao: modalRirMotivacao?.value?.trim() || '',
       customDesejos: modalRirDesejos?.value?.trim() || '',
       tempoComutacaoHoras: modalRirComutacaoH?.value || '0',
       tempoComutacaoMin: modalRirComutacaoM?.value || '45',
       dependentes: modalRirDependentes?.value || '0',
-      temConjuge: modalRirConjuge?.value === 'sim'
+      temConjuge: isTemConjuge,
+      obrigacaoConjuge: isObrigacao
     };
 
     const workerParaExportar = {
