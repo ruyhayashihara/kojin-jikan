@@ -5,7 +5,7 @@ import { escapeHtml } from '../security.js';
 import { loadOrInitTrabalhadores, getAllRegistrosForMonthEquipe, resetAndRegenerateMockData } from '../mock-data.js';
 import { prepararDadosRirekisho } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
-import { obterStatusPlano } from '../licencas-service.js';
+import { obterStatusPlano, isUsuarioAdmin } from '../licencas-service.js';
 import { openModalAtivacao } from '../modal-ativacao.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -138,9 +138,15 @@ export async function renderGestorDashboard(app) {
 
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 ${statusPlano.isPro ? `
-                  <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
-                    <span>⚙️ Painel de Licenças</span>
-                  </a>
+                  ${isUsuarioAdmin(user) ? `
+                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+                      <span>⚙️ Painel de Licenças</span>
+                    </a>
+                  ` : `
+                    <span style="font-size: 0.82rem; color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; padding: 0.35rem 0.75rem; border-radius: 6px;">
+                      <span>✓ Plano PRO Ativo</span>
+                    </span>
+                  `}
                 ` : `
                   <button type="button" class="btn btn-primary" id="btn-ativar-plano-dash" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'};">
                     <span>🔑 Inserir Chave de Liberação</span>

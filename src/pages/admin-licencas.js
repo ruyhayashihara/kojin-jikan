@@ -13,6 +13,7 @@ import {
   revogarChave,
   reativarChave,
   excluirChave,
+  isUsuarioAdmin,
   EMAILS_ADMINISTRADORES,
   SQL_SCHEMA_SUPABASE
 } from '../licencas-service.js';
@@ -21,6 +22,33 @@ export async function renderAdminLicencas(app) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     navigate('/login');
+    return;
+  }
+
+  // TRAVA DE SEGURANÇA: Apenas administradores autorizados podem acessar este painel
+  if (!isUsuarioAdmin(user)) {
+    const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+    app.innerHTML = `
+      ${renderSidebar(isGestor ? 'gestor-dashboard' : 'dashboard')}
+      <div class="app-content-wrapper">
+        <main class="main-content">
+          <div class="page-container">
+            <div class="card" style="text-align: center; padding: 3rem 1.5rem; max-width: 520px; margin: 3rem auto; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);">
+              <div style="font-size: 3.5rem; margin-bottom: 1rem;">⛔</div>
+              <h2 style="color: #ef4444; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem;">Acesso Não Autorizado</h2>
+              <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">
+                O painel de <strong>Gestão de Licenças e Chaves Anti-Fraude</strong> é restrito aos administradores do sistema.<br/>
+                Sua conta atual (<strong>${escapeHtml(user.email || 'usuário')}</strong>) não possui permissão de administrador.
+              </p>
+              <a href="${isGestor ? '#/gestor-dashboard' : '#/dashboard'}" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">
+                Voltar ao Painel
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    `;
+    bindSidebarEvents();
     return;
   }
 

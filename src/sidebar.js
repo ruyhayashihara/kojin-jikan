@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
 import { exportarMesPDF } from './pdf-export.js';
 import { openModalAtivacao } from './modal-ativacao.js';
+import { isUsuarioAdmin } from './licencas-service.js';
 
 const GESTOR_NAV_ITEMS = [
   {
@@ -94,7 +95,16 @@ export function renderSidebar(activePage) {
   const theme = localStorage.getItem('keiro_theme') || 'light';
   const isDark = theme === 'dark';
   const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+  const isAdmin = sessionStorage.getItem('keiro_is_admin') === 'true';
   const navList = isGestor ? GESTOR_NAV_ITEMS : NAV_ITEMS;
+
+  // Apenas administradores autorizados visualizam o item admin-licencas
+  const secondaryList = SECONDARY_ITEMS.filter(item => {
+    if (item.id === 'admin-licencas') {
+      return isAdmin;
+    }
+    return true;
+  });
 
   function renderItem(item) {
     if (item.isAction) {
@@ -106,7 +116,7 @@ export function renderSidebar(activePage) {
     }
     const isActive = item.id === activePage;
     return `
-      <a href="${item.href}" class="sidebar-item ${isActive ? 'sidebar-item-active' : ''}" title="${item.label}">
+      <a href="${item.href}" class="sidebar-item ${isActive ? 'sidebar-item-active' : ''}" id="sidebar-item-${item.id}" title="${item.label}">
         <span class="sidebar-icon">${item.icon}</span>
         <span class="sidebar-label">${item.label}</span>
       </a>`;
@@ -153,7 +163,7 @@ export function renderSidebar(activePage) {
             <span class="sidebar-icon">${isGestor ? '👤' : '🏢'}</span>
             <span class="sidebar-label">${isGestor ? 'Ver Modo Individual' : 'Painel do Gestor'}</span>
           </button>
-          ${SECONDARY_ITEMS.map(renderItem).join('')}
+          ${secondaryList.map(renderItem).join('')}
           <button class="sidebar-item sidebar-logout" id="sidebar-logout" title="Sair">
             <span class="sidebar-icon">${ICON_LOGOUT}</span>
             <span class="sidebar-label">Sair</span>
@@ -282,9 +292,42 @@ export function bindSidebarEvents() {
 
   // Logout
   document.getElementById('sidebar-logout')?.addEventListener('click', async () => {
+    sessionStorage.removeItem('keiro_is_admin');
     await supabase.auth.signOut();
     navigate('/login');
   });
+
+  // Sincronização e auditoria de permissão de Administrador
+  supabase.auth.getUser().then(({ data: { user } }) => {
+    if (user) {
+      const adminStatus = isUsuarioAdmin(user);
+      sessionStorage.setItem('keiro_is_admin', adminStatus ? 'true' : 'false');
+
+      const adminItem = document.getElementById('sidebar-item-admin-licencas');
+      if (adminStatus && !adminItem) {
+        // Se for admin e o link ainda não estava presente no DOM
+        const configItem = document.getElementById('sidebar-item-configuracoes');
+        if (configItem && configItem.parentElement) {
+          const a = document.createElement('a');
+          a.href = '#/admin-licencas';
+          a.className = 'sidebar-item' + (window.location.hash.includes('admin-licencas') ? ' sidebar-item-active' : '');
+          a.id = 'sidebar-item-admin-licencas';
+          a.title = 'Gestão de Licenças (Admin)';
+          a.innerHTML = `
+            <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <span class="sidebar-label">Gestão de Licenças (Admin)</span>
+          `;
+          configItem.parentElement.insertBefore(a, configItem);
+        }
+      } else if (!adminStatus && adminItem) {
+        // Se NÃO for admin, remove do menu imediatamente
+        adminItem.remove();
+      }
+    } else {
+      sessionStorage.removeItem('keiro_is_admin');
+      document.getElementById('sidebar-item-admin-licencas')?.remove();
+    }
+  }).catch(() => {});
 
   // Close sidebar on nav link click (mobile)
   document.querySelectorAll('.sidebar-item').forEach(item => {

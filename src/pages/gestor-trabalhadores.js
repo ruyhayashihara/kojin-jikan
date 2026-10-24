@@ -10,7 +10,7 @@ import {
 } from '../mock-data.js';
 import { prepararDadosRirekisho, traduzirCargo, gerarMotivacaoPolida, traduzirComGemini, romanToKatakanaApprox } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
-import { obterStatusPlano } from '../licencas-service.js';
+import { obterStatusPlano, isUsuarioAdmin } from '../licencas-service.js';
 import { openModalAtivacao } from '../modal-ativacao.js';
 
 // Lista das 47 províncias do Japão (都道府県)
@@ -204,9 +204,15 @@ export async function renderGestorTrabalhadores(app) {
 
               <div>
                 ${statusPlano.isPro ? `
-                  <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.3rem;">
-                    <span>⚙️ Gerenciar Licenças</span>
-                  </a>
+                  ${isUsuarioAdmin(user) ? `
+                    <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.3rem;">
+                      <span>⚙️ Gerenciar Licenças</span>
+                    </a>
+                  ` : `
+                    <span style="font-size: 0.78rem; color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(16, 185, 129, 0.1); border: 1px solid #059669; padding: 0.35rem 0.75rem; border-radius: 6px;">
+                      <span>✓ Acesso PRO Ilimitado</span>
+                    </span>
+                  `}
                 ` : `
                   <button type="button" class="btn btn-primary" id="btn-ativar-chave-banner" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
                     <span>🔑 Inserir Chave de Liberação</span>

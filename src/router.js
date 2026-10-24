@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { isUsuarioAdmin } from './licencas-service.js';
 
 const routes = {};
 let currentCleanup = null;
@@ -40,6 +41,13 @@ export async function handleRoute() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             window.location.hash = '/login';
+            return;
+        }
+
+        // ROTA ADMINISTRATIVA EXCLUSIVA: /admin-licencas
+        if (path === '/admin-licencas' && !isUsuarioAdmin(user)) {
+            const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+            window.location.hash = isGestor ? '/gestor-dashboard' : '/dashboard';
             return;
         }
     }

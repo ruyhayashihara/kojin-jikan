@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
+import { isUsuarioAdmin } from '../licencas-service.js';
 
 export async function renderLogin(app) {
   // Lê eventual preferência de role passada na URL (#/login?role=gestor)
@@ -157,7 +158,9 @@ export async function renderLogin(app) {
         console.warn('Erro ao verificar tipo_perfil:', err);
       }
 
-      // Armazena a role ativa na sessão
+      // Armazena a role ativa e permissão de administrador na sessão
+      const adminStatus = isUsuarioAdmin(user);
+      sessionStorage.setItem('keiro_is_admin', adminStatus ? 'true' : 'false');
       sessionStorage.setItem('keiro_active_role', finalRole);
 
       successDiv.textContent = 'Login realizado com sucesso! Redirecionando...';

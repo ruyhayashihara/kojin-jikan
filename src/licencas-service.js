@@ -483,8 +483,7 @@ export const EMAILS_ADMINISTRADORES = [
   'hayashihara.kougyou@gmail.com',
   'ruyhayashihara@icloud.com',
   'ruyhayashihara.jp@gmail.com',
-  'ruyhayashihara@gmail.com',
-  'admin@keiro.com'
+  'ruyhayashihara@gmail.com'
 ];
 
 /**
@@ -494,31 +493,20 @@ export function isUsuarioAdmin(user) {
   if (!user) return false;
 
   const emailUsuario = (user.email || '').trim().toLowerCase();
+  if (!emailUsuario) return false;
 
   // 1. Checa lista oficial de e-mails do administrador
-  if (emailUsuario && EMAILS_ADMINISTRADORES.some(e => e.toLowerCase() === emailUsuario)) {
+  if (EMAILS_ADMINISTRADORES.some(e => e.trim().toLowerCase() === emailUsuario)) {
     return true;
   }
 
-  // 2. Checa flag no localStorage configurado pelo próprio admin
-  try {
-    const adminConfig = localStorage.getItem(STORAGE_ADMIN_CONFIG_KEY);
-    if (adminConfig) {
-      const cfg = JSON.parse(adminConfig);
-      if (cfg.admin_emails && Array.isArray(cfg.admin_emails)) {
-        if (cfg.admin_emails.some(e => e.toLowerCase() === emailUsuario)) return true;
-      }
-      if (cfg.is_master_admin === true) return true;
-    }
-  } catch (e) { }
-
-  // 3. Checa metadados do usuário ou profile no Supabase
+  // 2. Checa metadados do usuário no Supabase Auth
   if (user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true) {
     return true;
   }
 
-  // 4. Modo desenvolvimento / dono local: permite acesso
-  return true;
+  // 3. Qualquer outro usuário comum NÃO é administrador
+  return false;
 }
 
 /**
