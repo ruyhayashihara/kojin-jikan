@@ -876,7 +876,7 @@ export async function renderGestorTrabalhadores(app) {
           </button>
         </div>
 
-        <div class="form-grid-4" style="margin-top: 0.5rem; gap: 0.65rem;">
+        <div class="form-grid-5" style="margin-top: 0.5rem; gap: 0.65rem;">
           <div class="form-group" style="margin: 0;">
             <label style="font-size: 0.72rem; color: #94a3b8;">Data de Obtenção (取得年月)</label>
             <input type="date" class="lic-input-data" data-lic-id="${lic.id}" value="${escapeHtml(lic.data_obtencao || '')}" />
@@ -884,6 +884,10 @@ export async function renderGestorTrabalhadores(app) {
           <div class="form-group" style="margin: 0;">
             <label style="font-size: 0.72rem; color: #94a3b8;">Nº Registro / Licença (修了証番号)</label>
             <input type="text" class="lic-input-registro" data-lic-id="${lic.id}" placeholder="Ex: 第123456号" value="${escapeHtml(lic.numero_registro || '')}" style="font-family: monospace;" />
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label style="font-size: 0.72rem; color: #38bdf8; font-weight: 600;">Complemento / Nível (補足・種別・等級)</label>
+            <input type="text" class="lic-input-complemento" data-lic-id="${lic.id}" placeholder="Ex: JIS SA-3F, TN-P, 1級, N2" value="${escapeHtml(lic.complemento || '')}" style="border-color: #0284c7;" />
           </div>
           <div class="form-group" style="margin: 0;">
             <label style="font-size: 0.72rem; color: #94a3b8;">Órgão Emissor / Autoescola (交付機関・教習所)</label>
@@ -1090,6 +1094,7 @@ export async function renderGestorTrabalhadores(app) {
       categoria_icon: catObj.icon,
       nome_ja: item.nome_ja,
       nome_pt: item.nome_pt,
+      complemento: '',
       data_obtencao: '',
       numero_registro: '',
       orgao_emissor: '',
@@ -1130,6 +1135,7 @@ export async function renderGestorTrabalhadores(app) {
       categoria_icon: '✏️',
       nome_ja: nomeJa || nomePt,
       nome_pt: nomePt || nomeJa,
+      complemento: '',
       data_obtencao: '',
       numero_registro: '',
       orgao_emissor: '',
@@ -1178,6 +1184,8 @@ export async function renderGestorTrabalhadores(app) {
       lic.data_obtencao = target.value;
     } else if (target.classList.contains('lic-input-registro')) {
       lic.numero_registro = target.value.trim();
+    } else if (target.classList.contains('lic-input-complemento')) {
+      lic.complemento = target.value.trim();
     } else if (target.classList.contains('lic-input-orgao')) {
       lic.orgao_emissor = target.value.trim();
     } else if (target.classList.contains('lic-input-validade')) {

@@ -205,11 +205,11 @@ export const MOCK_TRABALHADORES = [
     contato_emergencia_telefone: '090-5432-1098',
     observacoes: 'Soldagem certificada JIS Z 3801.',
     qualificacoes_licencas: [
-      { id: 'lic-005-1', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'TIG溶接 (アルゴン溶接 - ステンレス・アルミ)', nome_pt: 'Solda TIG / Argônio (Inox e Alumínio)', data_obtencao: '2018-03-25', numero_registro: 'JWES-TIG-40192', orgao_emissor: '一般社団法人 日本溶接協会 (JWES)', validade: '2027-03-24' },
-      { id: 'lic-005-2', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: '半自動溶接 (MAG / MIG / CO2溶接)', nome_pt: 'Solda Semi-automática MAG/MIG/CO2', data_obtencao: '2017-09-12', numero_registro: 'JWES-MAG-28104', orgao_emissor: '日本溶接協会 神奈川支部', validade: '2026-09-11' },
-      { id: 'lic-005-3', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'JIS溶接技能者資格 (JIS Z 3801 / 3841 基本級・専門級)', nome_pt: 'Certificação JIS de Soldador Oficial', data_obtencao: '2019-11-20', numero_registro: 'JIS-WELD-99201', orgao_emissor: '日本規格協会 / JWES', validade: '2028-11-19' },
-      { id: 'lic-005-4', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'ガス溶接技能講習', nome_pt: 'Solda a Gás (Gas Welding)', data_obtencao: '2016-05-18', numero_registro: '神ガ第20194号', orgao_emissor: '神奈川労働局長登録教習機関', validade: '' },
-      { id: 'lic-005-5', categoria_id: 'cargas', categoria_nome: 'Cargas & Guindastes', categoria_icon: '🏗️', nome_ja: '玉掛け技能講習 (1t以上)', nome_pt: 'Tamagake (1t ou mais)', data_obtencao: '2017-02-10', numero_registro: '神玉第88210号', orgao_emissor: 'コベルコ教習所', validade: '' }
+      { id: 'lic-005-1', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'TIG溶接 (アルゴン溶接 - ステンレス・アルミ)', nome_pt: 'Solda TIG / Argônio (Inox e Alumínio)', complemento: 'JIS TN-P', data_obtencao: '2018-03-25', numero_registro: 'JWES-TIG-40192', orgao_emissor: '一般社団法人 日本溶接協会 (JWES)', validade: '2027-03-24' },
+      { id: 'lic-005-2', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: '半自動溶接 (MAG / MIG / CO2溶接)', nome_pt: 'Solda Semi-automática MAG/MIG/CO2', complemento: 'JIS SA-3F', data_obtencao: '2017-09-12', numero_registro: 'JWES-MAG-28104', orgao_emissor: '日本溶接協会 神奈川支部', validade: '2026-09-11' },
+      { id: 'lic-005-3', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'JIS溶接技能者資格 (JIS Z 3801 / 3841 基本級・専門級)', nome_pt: 'Certificação JIS de Soldador Oficial', complemento: '専門級 (SA-2V)', data_obtencao: '2019-11-20', numero_registro: 'JIS-WELD-99201', orgao_emissor: '日本規格協会 / JWES', validade: '2028-11-19' },
+      { id: 'lic-005-4', categoria_id: 'solda', categoria_nome: 'Soldagem no Japão', categoria_icon: '⚡', nome_ja: 'ガス溶接技能講習', nome_pt: 'Solda a Gás (Gas Welding)', complemento: '', data_obtencao: '2016-05-18', numero_registro: '神ガ第20194号', orgao_emissor: '神奈川労働局長登録教習機関', validade: '' },
+      { id: 'lic-005-5', categoria_id: 'cargas', categoria_nome: 'Cargas & Guindastes', categoria_icon: '🏗️', nome_ja: '玉掛け技能講習 (1t以上)', nome_pt: 'Tamagake (1t ou mais)', complemento: '', data_obtencao: '2017-02-10', numero_registro: '神玉第88210号', orgao_emissor: 'コベルコ教習所', validade: '' }
     ],
     ativo: true
   },

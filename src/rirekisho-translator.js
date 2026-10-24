@@ -253,6 +253,7 @@ export function formatarLicencasRirekisho(licencas = []) {
     }
 
     const nome = (lic.nome_ja || lic.nome_pt || '').trim();
+    const complemento = (lic.complemento || '').trim();
     let sufixo = '取得';
 
     if (nome.includes('特別教育') || nome.includes('技能講習') || nome.includes('講習')) {
@@ -263,10 +264,13 @@ export function formatarLicencasRirekisho(licencas = []) {
       sufixo = '取得';
     }
 
+    // Se possui complemento/nível (ex: JIS SA-3F, TN-P, 1級, N2), inclui no texto oficial da 履歴書
+    const texto = complemento ? `${nome}（${complemento}） ${sufixo}` : `${nome} ${sufixo}`;
+
     return {
       ano: ano || '',
       mes: mes || '',
-      texto: `${nome} ${sufixo}`
+      texto: texto
     };
   });
 }
@@ -278,7 +282,11 @@ export function formatarLicencasRirekisho(licencas = []) {
 export function gerarMotivacaoPolida(worker) {
   const cargo = traduzirCargo(worker.cargo_funcao);
   const licencas = worker.qualificacoes_licencas || [];
-  const licencasNomes = licencas.slice(0, 3).map(l => l.nome_ja || l.nome_pt).join('、');
+  const licencasNomes = licencas.slice(0, 3).map(l => {
+    const n = (l.nome_ja || l.nome_pt || '').trim();
+    const c = (l.complemento || '').trim();
+    return c ? `${n}（${c}）` : n;
+  }).filter(Boolean).join('、');
 
   let licencaTexto = '';
   if (licencasNomes) {
