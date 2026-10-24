@@ -8,6 +8,14 @@ import {
   getStoredTrabalhadores,
   setStoredTrabalhadores
 } from '../mock-data.js';
+import {
+  prepararDadosRirekisho,
+  traduzirCargo,
+  gerarMotivacaoPolida,
+  traduzirComGemini,
+  romanToKatakanaApprox
+} from '../rirekisho-translator.js';
+import { imprimirRirekisho } from '../rirekisho-pdf.js';
 
 // Lista das 47 províncias do Japão (都道府県)
 const PROVINCIAS_JAPAO = [
@@ -236,6 +244,10 @@ export async function renderGestorTrabalhadores(app) {
               </div>
               <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
                 <button type="button" class="btn btn-outline btn-cancel-action">Cancelar</button>
+                <button type="button" class="btn btn-outline" id="btn-export-rirekisho-form" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #38bdf8; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <span>Exportar 履歴書 (PDF)</span>
+                </button>
                 <button type="button" class="btn btn-primary" id="btn-salvar-topo" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                   <span>Salvar Ficha Cadastral</span>
@@ -592,8 +604,12 @@ export async function renderGestorTrabalhadores(app) {
               </div>
 
               <!-- Botões de Ação Inferiores -->
-              <div style="display: flex; justify-content: flex-end; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--color-border); margin-bottom: 2rem;">
+              <div style="display: flex; justify-content: flex-end; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--color-border); margin-bottom: 2rem; flex-wrap: wrap;">
                 <button type="button" class="btn btn-outline btn-cancel-action" style="min-width: 120px;">Cancelar</button>
+                <button type="button" class="btn btn-outline" id="btn-export-rirekisho-bottom" style="display: inline-flex; align-items: center; gap: 0.45rem; border-color: #38bdf8; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <span>Exportar 履歴書 (PDF)</span>
+                </button>
                 <button type="submit" class="btn btn-primary" id="btn-salvar-form" style="min-width: 180px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                   <span>Salvar Ficha Cadastral</span>
@@ -601,6 +617,123 @@ export async function renderGestorTrabalhadores(app) {
               </div>
             </form>
 
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- MODAL DE EXPORTAÇÃO DE CURRÍCULO JAPONÊS (履歴書 JIS A4)  -->
+          <!-- ======================================================== -->
+          <div id="modal-exportar-rirekisho" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem;">
+            <div class="modal-content" style="width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; background: #1e293b; border: 1px solid #334155; border-radius: 1rem; color: #f8fafc; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: #f8fafc;">
+                      📄 Exportar Currículo Japonês (履歴書 JIS規格 A4)
+                    </h2>
+                    <span class="badge-role-gestor">2 Páginas A4</span>
+                  </div>
+                  <p style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.25rem;">
+                    Gera o modelo oficial JIS de 2 páginas preenchido com dados cadastrais, licenças industriais e histórico profissional.
+                  </p>
+                </div>
+                <button type="button" id="btn-fechar-modal-rirekisho" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">✕</button>
+              </div>
+
+              <!-- Opção de Tradução para Japonês Polido -->
+              <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;">
+                  <input type="checkbox" id="chk-traduzir-japones" checked style="width: 1.15rem; height: 1.15rem; margin-top: 2px; accent-color: #0284c7;" />
+                  <div>
+                    <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem;">
+                      Traduzir e formatar dados para Japonês Polido (ビジネス日本語・敬語)
+                    </div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.25rem; line-height: 1.4;">
+                      Converte termos em português para padrão corporativo japonês: cargos técnicos, sufixos oficiais de licenças (修了/取得/合格), auto-apresentação formal (志望動機・自己PR) e cláusula padrão de desejos (貴社の規定に従います).
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Formulário de Revisão e Ajuste Fino -->
+              <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Nome / 氏名</label>
+                    <input type="text" id="modal-rir-nome" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                  </div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Furigana / ふりがな</label>
+                    <input type="text" id="modal-rir-furigana" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Cargo / 職種 (Tradução em Japonês)</label>
+                    <input type="text" id="modal-rir-cargo" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                  </div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Tempo de Deslocamento (通勤時間)</label>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <input type="number" id="modal-rir-comutacao-horas" value="0" min="0" max="12" style="width: 60px; padding: 0.4rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #fff;" />
+                      <span style="font-size: 0.8rem; color: #94a3b8;">h</span>
+                      <input type="number" id="modal-rir-comutacao-min" value="45" min="0" max="59" style="width: 60px; padding: 0.4rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #fff;" />
+                      <span style="font-size: 0.8rem; color: #94a3b8;">min</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Dependentes (扶養家族数)</label>
+                    <input type="number" id="modal-rir-dependentes" value="0" min="0" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                  </div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Possui Cônjuge (配偶者)</label>
+                    <select id="modal-rir-conjuge" class="form-input" style="width: 100%; font-size: 0.85rem;">
+                      <option value="nao">Não (無)</option>
+                      <option value="sim">Sim (有)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">
+                      Motivação e Auto-Apresentação (志望の動機、特技、アピールポイントなど)
+                    </label>
+                    <div style="display: flex; gap: 0.75rem;">
+                      <button type="button" id="btn-modal-gemini-ai" style="background: none; border: none; color: #a855f7; font-size: 0.75rem; cursor: pointer; text-decoration: underline;" title="Refinar com IA Gemini">
+                        ✨ Aprimorar com IA Gemini
+                      </button>
+                      <button type="button" id="btn-modal-regenerar-motivacao" style="background: none; border: none; color: #38bdf8; font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+                        ↺ Restaurar Padrão Polido
+                      </button>
+                    </div>
+                  </div>
+                  <textarea id="modal-rir-motivacao" rows="4" style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #f8fafc; font-size: 0.82rem; line-height: 1.4; resize: vertical;"></textarea>
+                  <div id="modal-gemini-status" style="display: none; font-size: 0.75rem; color: #c084fc; margin-top: 0.25rem;"></div>
+                </div>
+
+                <div>
+                  <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">
+                    Desejos Pessoais sobre Trabalho (本人希望記入欄)
+                  </label>
+                  <input type="text" id="modal-rir-desejos" value="貴社の規定に従います。" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                </div>
+              </div>
+
+              <!-- Botões de Ação do Modal -->
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #334155;">
+                <button type="button" class="btn btn-outline" id="btn-cancelar-modal-rirekisho">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-gerar-pdf-rirekisho" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  <span>Visualizar & Imprimir / Salvar PDF (A4)</span>
+                </button>
+              </div>
+
+            </div>
           </div>
 
         </div>
@@ -666,10 +799,13 @@ export async function renderGestorTrabalhadores(app) {
           </td>
           <td style="text-align: center;">
             <div style="display: flex; gap: 0.35rem; justify-content: center;">
+              <button type="button" class="btn btn-outline btn-rirekisho-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 JIS A4)">
+                履歴書
+              </button>
               <button type="button" class="btn btn-outline btn-edit-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 8px;" title="Editar Ficha Cadastral">
                 Editar
               </button>
-              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 8px; border-color: #0284c7; color: #38bdf8;" title="Ver e Apontar Horas">
+              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 8px; border-color: #6366f1; color: #a5b4fc;" title="Ver e Apontar Horas">
                 Horas
               </button>
             </div>
@@ -1044,6 +1180,16 @@ export async function renderGestorTrabalhadores(app) {
 
   // Eventos de clique na tabela (delegation - toda a linha é clicável)
   document.getElementById('lista-trabalhadores-body')?.addEventListener('click', (e) => {
+    // Se clicou no botão de Exportar Rirekisho
+    const btnRirekisho = e.target.closest('.btn-rirekisho-worker');
+    if (btnRirekisho) {
+      e.stopPropagation();
+      const id = btnRirekisho.dataset.id;
+      const worker = trabalhadores.find(t => t.id === id);
+      if (worker) abrirModalRirekisho(worker);
+      return;
+    }
+
     // Se clicou especificamente no botão de Horas, vai para apontamento de horas
     const btnTimesheet = e.target.closest('.btn-timesheet-worker');
     if (btnTimesheet) {
@@ -1061,6 +1207,160 @@ export async function renderGestorTrabalhadores(app) {
       const worker = trabalhadores.find(t => t.id === id);
       if (worker) openFormView(worker);
     }
+  });
+
+  // Objeto do trabalhador atualmente selecionado para a 履歴書
+  let activeRirekishoWorker = null;
+
+  function getWorkerFromForm() {
+    return {
+      id: document.getElementById('trab-id').value,
+      codigo_trabalhador: document.getElementById('trab-codigo').value,
+      nome_alfabeto: document.getElementById('trab-nome-alfabeto').value,
+      nome_kanji: document.getElementById('trab-nome-kanji').value,
+      nome_kana: document.getElementById('trab-nome-kana').value,
+      data_nascimento: document.getElementById('trab-nascimento').value,
+      genero: document.getElementById('trab-genero').value,
+      nacionalidade: document.getElementById('trab-nacionalidade').value,
+      cep: document.getElementById('trab-cep').value,
+      provincia: document.getElementById('trab-provincia').value,
+      cidade_bairro: document.getElementById('trab-cidade').value,
+      endereco_numero: document.getElementById('trab-endereco').value,
+      telefone: document.getElementById('trab-telefone').value,
+      email: document.getElementById('trab-email').value,
+      tipo_visto: document.getElementById('trab-tipo-visto').value,
+      tipo_contrato: document.getElementById('trab-tipo-contrato').value,
+      cargo_funcao: document.getElementById('trab-cargo').value,
+      data_admissao: document.getElementById('trab-admissao').value,
+      contato_emergencia_nome: document.getElementById('trab-emergencia-nome').value,
+      contato_emergencia_parentesco: document.getElementById('trab-emergencia-parentesco').value,
+      contato_emergencia_telefone: document.getElementById('trab-emergencia-tel').value,
+      observacoes: document.getElementById('trab-observacoes').value,
+      qualificacoes_licencas: [...trabalhadorLicencas]
+    };
+  }
+
+  const modalRirekisho = document.getElementById('modal-exportar-rirekisho');
+  const chkTraduzirJapones = document.getElementById('chk-traduzir-japones');
+  const modalRirNome = document.getElementById('modal-rir-nome');
+  const modalRirFurigana = document.getElementById('modal-rir-furigana');
+  const modalRirCargo = document.getElementById('modal-rir-cargo');
+  const modalRirMotivacao = document.getElementById('modal-rir-motivacao');
+  const modalRirDesejos = document.getElementById('modal-rir-desejos');
+  const modalRirComutacaoH = document.getElementById('modal-rir-comutacao-horas');
+  const modalRirComutacaoM = document.getElementById('modal-rir-comutacao-min');
+  const modalRirDependentes = document.getElementById('modal-rir-dependentes');
+  const modalRirConjuge = document.getElementById('modal-rir-conjuge');
+  const modalGeminiStatus = document.getElementById('modal-gemini-status');
+
+  function preencherCamposModal(worker) {
+    if (!worker) return;
+    const traduzir = chkTraduzirJapones?.checked ?? true;
+
+    modalRirNome.value = worker.nome_kanji || worker.nome_alfabeto || '';
+    modalRirFurigana.value = worker.nome_kana || romanToKatakanaApprox(worker.nome_alfabeto);
+    modalRirCargo.value = traduzir ? traduzirCargo(worker.cargo_funcao) : (worker.cargo_funcao || '');
+    modalRirMotivacao.value = traduzir ? gerarMotivacaoPolida(worker) : (worker.observacoes || '');
+    modalRirDesejos.value = '貴社の規定に従います。';
+    modalRirComutacaoH.value = '0';
+    modalRirComutacaoM.value = '45';
+
+    const parentesco = (worker.contato_emergencia_parentesco || '').toLowerCase();
+    const temConj = parentesco.includes('esposa') || parentesco.includes('marido') || parentesco.includes('cônjuge') || parentesco.includes('妻') || parentesco.includes('夫');
+    modalRirDependentes.value = temConj ? '1' : '0';
+    modalRirConjuge.value = temConj ? 'sim' : 'nao';
+  }
+
+  function abrirModalRirekisho(worker) {
+    activeRirekishoWorker = worker;
+    if (modalGeminiStatus) modalGeminiStatus.style.display = 'none';
+    preencherCamposModal(worker);
+    if (modalRirekisho) {
+      modalRirekisho.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function fecharModalRirekisho() {
+    if (modalRirekisho) {
+      modalRirekisho.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  document.getElementById('btn-fechar-modal-rirekisho')?.addEventListener('click', fecharModalRirekisho);
+  document.getElementById('btn-cancelar-modal-rirekisho')?.addEventListener('click', fecharModalRirekisho);
+  modalRirekisho?.addEventListener('click', (e) => {
+    if (e.target === modalRirekisho) fecharModalRirekisho();
+  });
+
+  document.getElementById('btn-export-rirekisho-form')?.addEventListener('click', () => {
+    const worker = getWorkerFromForm();
+    abrirModalRirekisho(worker);
+  });
+
+  document.getElementById('btn-export-rirekisho-bottom')?.addEventListener('click', () => {
+    const worker = getWorkerFromForm();
+    abrirModalRirekisho(worker);
+  });
+
+  chkTraduzirJapones?.addEventListener('change', () => {
+    if (activeRirekishoWorker) {
+      preencherCamposModal(activeRirekishoWorker);
+    }
+  });
+
+  document.getElementById('btn-modal-regenerar-motivacao')?.addEventListener('click', () => {
+    if (activeRirekishoWorker) {
+      modalRirMotivacao.value = gerarMotivacaoPolida(activeRirekishoWorker);
+    }
+  });
+
+  document.getElementById('btn-modal-gemini-ai')?.addEventListener('click', async () => {
+    if (!activeRirekishoWorker) return;
+    if (modalGeminiStatus) {
+      modalGeminiStatus.style.display = 'block';
+      modalGeminiStatus.textContent = '⏳ Conectando à IA Gemini para refinamento em Keigo (ビジネス敬語)...';
+    }
+    const res = await traduzirComGemini(activeRirekishoWorker);
+    if (res) {
+      if (res.cargoJapones) modalRirCargo.value = res.cargoJapones;
+      if (res.motivacaoPolida) modalRirMotivacao.value = res.motivacaoPolida;
+      if (res.desejosPessoais) modalRirDesejos.value = res.desejosPessoais;
+      if (modalGeminiStatus) {
+        modalGeminiStatus.textContent = '✨ Texto refinado com sucesso pela IA Gemini!';
+        setTimeout(() => { modalGeminiStatus.style.display = 'none'; }, 3000);
+      }
+    } else {
+      if (modalGeminiStatus) {
+        modalGeminiStatus.textContent = 'ℹ️ Dicionário padrão de Keigo aplicado com sucesso (sem chave Gemini configurada).';
+        setTimeout(() => { modalGeminiStatus.style.display = 'none'; }, 3500);
+      }
+    }
+  });
+
+  document.getElementById('btn-gerar-pdf-rirekisho')?.addEventListener('click', () => {
+    if (!activeRirekishoWorker) return;
+
+    const options = {
+      customMotivacao: modalRirMotivacao.value.trim(),
+      customDesejos: modalRirDesejos.value.trim(),
+      tempoComutacaoHoras: modalRirComutacaoH.value,
+      tempoComutacaoMin: modalRirComutacaoM.value,
+      dependentes: modalRirDependentes.value,
+      temConjuge: modalRirConjuge.value === 'sim'
+    };
+
+    const workerParaExportar = {
+      ...activeRirekishoWorker,
+      nome_kanji: modalRirNome.value.trim() || activeRirekishoWorker.nome_kanji,
+      nome_kana: modalRirFurigana.value.trim() || activeRirekishoWorker.nome_kana,
+      cargo_funcao: modalRirCargo.value.trim() || activeRirekishoWorker.cargo_funcao
+    };
+
+    const dadosFinal = prepararDadosRirekisho(workerParaExportar, options);
+    imprimirRirekisho(dadosFinal);
+    fecharModalRirekisho();
   });
 
   // Salvar Ficha Cadastral

@@ -3,6 +3,8 @@ import { navigate } from '../router.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
 import { escapeHtml } from '../security.js';
 import { loadOrInitTrabalhadores, getAllRegistrosForMonthEquipe, resetAndRegenerateMockData } from '../mock-data.js';
+import { prepararDadosRirekisho } from '../rirekisho-translator.js';
+import { imprimirRirekisho } from '../rirekisho-pdf.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -223,9 +225,14 @@ export async function renderGestorDashboard(app) {
                             </span>
                           </td>
                           <td style="text-align: center;">
-                            <a href="#/gestor-trabalhadores?editar=${t.id}" class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" title="Ver Ficha Cadastral">
-                              Ficha
-                            </a>
+                            <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                              <button type="button" class="btn btn-outline btn-quick-rirekisho" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #0284c7; color: #38bdf8;" title="Exportar Currículo Japonês (履歴書 PDF)">
+                                履歴書
+                              </button>
+                              <a href="#/gestor-trabalhadores?editar=${t.id}" class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" title="Ver Ficha Cadastral">
+                                Ficha
+                              </a>
+                            </div>
                           </td>
                         </tr>
                       `;
@@ -242,6 +249,19 @@ export async function renderGestorDashboard(app) {
   `;
 
   bindSidebarEvents();
+
+  // Exportação rápida de 履歴書 na tabela do dashboard
+  document.querySelectorAll('.btn-quick-rirekisho').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const worker = trabalhadores.find(t => t.id === id);
+      if (worker) {
+        const dados = prepararDadosRirekisho(worker);
+        imprimirRirekisho(dados);
+      }
+    });
+  });
 
   // Clique em qualquer lugar da linha abre a ficha cadastral do trabalhador
   document.querySelectorAll('.worker-row-clickable').forEach(row => {
