@@ -536,12 +536,40 @@ export function generateYearRecordsForWorker(workerId, userId, startYear = 2025,
 }
 
 /**
+ * Gera o próximo ID sequencial numérico de 4 dígitos (0001, 0002, 0003...)
+ * baseado no maior número existente na lista de trabalhadores.
+ */
+export function gerarProximoIdTrabalhador(listaTrabalhadores = []) {
+  if (!Array.isArray(listaTrabalhadores) || listaTrabalhadores.length === 0) {
+    return '0001';
+  }
+
+  let maiorNumero = 0;
+
+  listaTrabalhadores.forEach(t => {
+    if (!t) return;
+    const codigo = String(t.codigo_trabalhador || t.id || '');
+    // Extrai os dígitos do código (ex: "0001" -> 1, "TR-005" -> 5)
+    const matches = codigo.match(/\d+/g);
+    if (matches) {
+      const num = parseInt(matches.join(''), 10);
+      if (!isNaN(num) && num > maiorNumero) {
+        maiorNumero = num;
+      }
+    }
+  });
+
+  const proximo = maiorNumero + 1;
+  return String(proximo).padStart(4, '0');
+}
+
+/**
  * Inicializa ou carrega a lista de trabalhadores em memória / localStorage
  */
 export function getStoredTrabalhadores() {
   try {
     const raw = localStorage.getItem('keiro_mock_trabalhadores');
-    if (raw) return JSON.parse(raw);
+    if (raw !== null && raw !== '') return JSON.parse(raw);
   } catch (e) { }
   return null;
 }
@@ -551,7 +579,7 @@ export function getStoredTrabalhadores() {
  */
 export function setStoredTrabalhadores(list) {
   try {
-    localStorage.setItem('keiro_mock_trabalhadores', JSON.stringify(list));
+    localStorage.setItem('keiro_mock_trabalhadores', JSON.stringify(list || []));
   } catch (e) { }
 }
 
@@ -561,7 +589,7 @@ export function setStoredTrabalhadores(list) {
 export function getStoredRegistros() {
   try {
     const raw = localStorage.getItem('keiro_mock_registros');
-    if (raw) return JSON.parse(raw);
+    if (raw !== null && raw !== '') return JSON.parse(raw);
   } catch (e) { }
   return null;
 }
@@ -571,17 +599,14 @@ export function getStoredRegistros() {
  */
 export function setStoredRegistros(records) {
   try {
-    localStorage.setItem('keiro_mock_registros', JSON.stringify(records));
+    localStorage.setItem('keiro_mock_registros', JSON.stringify(records || {}));
   } catch (e) { }
 }
 
 /**
- * Inicializa ou carrega a lista de 10 trabalhadores fictícios
+ * Inicializa ou carrega a lista de trabalhadores (inicia limpa sem injetar dados fictícios automaticamente)
  */
 export async function loadOrInitTrabalhadores(userId, supabase) {
-  let trabalhadores = [];
-  let supabaseOk = false;
-
   // 1. Tenta buscar do Supabase
   try {
     const { data, error } = await supabase
@@ -590,57 +615,31 @@ export async function loadOrInitTrabalhadores(userId, supabase) {
       .eq('gestor_id', userId)
       .order('codigo_trabalhador', { ascending: true });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
+    // Se a consulta teve sucesso, retorna os registros (mesmo lista vazia [])
+    if (!error && Array.isArray(data)) {
+      setStoredTrabalhadores(data);
       return { trabalhadores: data, source: 'supabase' };
     }
-    if (!error) supabaseOk = true;
   } catch (e) { }
 
   // 2. Verifica se temos no cache local
   const cached = getStoredTrabalhadores();
-  if (cached && cached.length > 0) {
+  if (cached !== null && Array.isArray(cached)) {
     return { trabalhadores: cached, source: 'local' };
   }
 
-  // 3. Inicializa os 10 fictícios
-  const novosTrabalhadores = MOCK_TRABALHADORES.map((t, i) => ({
-    ...t,
-    id: `mock-worker-${i + 1}`,
-    gestor_id: userId,
-    created_at: new Date().toISOString()
-  }));
-
-  // Se o Supabase estiver pronto, tenta salvar nele
-  if (supabaseOk) {
-    try {
-      const toInsert = MOCK_TRABALHADORES.map(t => ({
-        ...t,
-        gestor_id: userId
-      }));
-      const { data, error } = await supabase.from('trabalhador').insert(toInsert).select();
-      if (!error && data && data.length > 0) {
-        initMockYearRecordsForAll(data, userId);
-        return { trabalhadores: data, source: 'supabase' };
-      }
-    } catch (e) { }
-  }
-
-  // Salva no armazenamento local
-  setStoredTrabalhadores(novosTrabalhadores);
-
-  // Também gera 1 ano de registros (~250h/mês) para todos eles
-  initMockYearRecordsForAll(novosTrabalhadores, userId);
-
-  return { trabalhadores: novosTrabalhadores, source: 'local' };
+  // 3. Primeira execução: inicializa lista vazia (sem dados fictícios automáticos)
+  setStoredTrabalhadores([]);
+  return { trabalhadores: [], source: 'local' };
 }
 
 /**
- * Gera 1 ano (12 meses) de registros com média de ~250h/mês para todos os trabalhadores
+ * Gera 1 ano (12 meses) de registros com média de ~250h/mês para todos os trabalhadores (utilitário sob demanda)
  */
 export function initMockYearRecordsForAll(workers, userId) {
   let allRecords = getStoredRegistros() || {};
   // 12 meses anteriores: Nov/2025 até Out/2026
-  workers.forEach(w => {
+  (workers || []).forEach(w => {
     const recs = generateYearRecordsForWorker(w.id, userId, 2025, 11, 12);
     recs.forEach(r => {
       const key = `${r.trabalhador_id}_${r.data}`;
@@ -668,16 +667,11 @@ export async function getRegistrosForWorkerMonth(workerId, userId, year, month, 
     }
   } catch (e) { }
 
-  // 2. Busca local
-  let allRecords = getStoredRegistros();
-  if (!allRecords) {
-    const workers = getStoredTrabalhadores() || [];
-    allRecords = initMockYearRecordsForAll(workers, userId);
-  }
-
+  // 2. Busca local sem auto-geração indesejada
+  const allRecords = getStoredRegistros() || {};
   const prefix = `${year}-${String(month).padStart(2, '0')}`;
   const matched = [];
-  Object.values(allRecords || {}).forEach(r => {
+  Object.values(allRecords).forEach(r => {
     if (r.trabalhador_id === workerId && r.data && r.data.startsWith(prefix)) {
       matched.push(r);
     }
@@ -757,7 +751,12 @@ export async function excluirTrabalhador(workerId, userId, supabase) {
           delete records[k];
         }
       });
-      setStoredRegistros(records);
+      // Se não sobrou nenhum trabalhador, limpa os registros completamente
+      if (updated.length === 0) {
+        setStoredRegistros({});
+      } else {
+        setStoredRegistros(records);
+      }
     }
   } catch (e) {
     console.warn('Erro ao excluir do cache local:', e);
@@ -770,6 +769,39 @@ export async function excluirTrabalhador(workerId, userId, supabase) {
       await supabase.from('trabalhador').delete().eq('id', workerId);
     } catch (e) {
       console.warn('Erro ao excluir do Supabase:', e);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Exclui todos os trabalhadores cadastrados e todas as folhas de ponto/horas associadas
+ */
+export async function limparTodosTrabalhadores(userId, supabase) {
+  // 1. Limpa o cache local
+  try {
+    setStoredTrabalhadores([]);
+    setStoredRegistros({});
+  } catch (e) {
+    console.warn('Erro ao limpar cache local:', e);
+  }
+
+  // 2. Se Supabase estiver conectado, exclui todos os registros do gestor
+  if (supabase && userId) {
+    try {
+      const { data: trabs } = await supabase
+        .from('trabalhador')
+        .select('id')
+        .eq('gestor_id', userId);
+
+      if (Array.isArray(trabs) && trabs.length > 0) {
+        const ids = trabs.map(t => t.id);
+        await supabase.from('registro_diario').delete().in('trabalhador_id', ids);
+      }
+      await supabase.from('trabalhador').delete().eq('gestor_id', userId);
+    } catch (e) {
+      console.warn('Erro ao excluir todos os trabalhadores do Supabase:', e);
     }
   }
 

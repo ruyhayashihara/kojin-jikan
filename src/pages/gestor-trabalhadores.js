@@ -7,7 +7,9 @@ import {
   resetAndRegenerateMockData,
   getStoredTrabalhadores,
   setStoredTrabalhadores,
-  excluirTrabalhador
+  excluirTrabalhador,
+  limparTodosTrabalhadores,
+  gerarProximoIdTrabalhador
 } from '../mock-data.js';
 import { prepararDadosRirekisho, traduzirCargo, gerarMotivacaoPolida, traduzirComGemini, romanToKatakanaApprox } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
@@ -172,6 +174,12 @@ export async function renderGestorTrabalhadores(app) {
                 <p>Ficha cadastral completa baseada no padrão de contratação japonês (履歴書・雇用管理)</p>
               </div>
               <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                ${trabalhadores.length > 0 ? `
+                  <button type="button" class="btn btn-outline" id="btn-limpar-todos-trabalhadores" style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--color-danger); border-color: var(--color-danger);" title="Excluir todos os cadastros e registros de horas">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>Excluir Todos (${trabalhadores.length})</span>
+                  </button>
+                ` : ''}
                 <button type="button" class="btn btn-primary" id="btn-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem; ${statusPlano.atingiuLimite && !statusPlano.isPro ? 'border-color: #ef4444; background: #dc2626;' : ''}">
                   ${statusPlano.atingiuLimite && !statusPlano.isPro ? '🔒' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
                   <span>Cadastrar Novo Trabalhador (履歴書)</span>
@@ -225,7 +233,7 @@ export async function renderGestorTrabalhadores(app) {
             <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
               <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
                 <div style="flex: 1; min-width: 240px;" class="form-group">
-                  <input type="text" id="filtro-busca" placeholder="🔍 Buscar por nome, código (TR-001), zairyu card..." style="margin: 0;" />
+                  <input type="text" id="filtro-busca" placeholder="🔍 Buscar por nome, ID (0001), zairyu card..." style="margin: 0;" />
                 </div>
                 <div style="width: 200px;" class="form-group">
                   <select id="filtro-status" style="margin: 0;">
@@ -302,7 +310,7 @@ export async function renderGestorTrabalhadores(app) {
             <div id="form-success" class="alert alert-success" style="display: none; margin-bottom: 1.25rem;"></div>
 
             <!-- Formulário da Ficha (履歴書) -->
-            <form id="form-trabalhador">
+            <form id="form-trabalhador" autocomplete="off">
               <input type="hidden" id="trab-id" value="" />
 
               <!-- SEÇÃO 1: Identificação Pessoal -->
@@ -318,8 +326,8 @@ export async function renderGestorTrabalhadores(app) {
 
                 <div class="form-grid-3" style="margin-bottom: 1rem;">
                   <div class="form-group">
-                    <label for="trab-codigo">ID / Código do Trabalhador *</label>
-                    <input type="text" id="trab-codigo" placeholder="TR-001" required style="font-family: monospace; font-weight: 700; color: #38bdf8;" />
+                    <label for="trab-codigo">ID do Trabalhador (Automático) *</label>
+                    <input type="text" id="trab-codigo" placeholder="0001" required readonly style="font-family: monospace; font-weight: 700; color: var(--color-primary); background: var(--color-bg); cursor: not-allowed;" title="ID gerado automaticamente em ordem sequencial (0001, 0002...)" />
                   </div>
                   <div class="form-group">
                     <label for="trab-nome-alfabeto">Nome Completo (Romaji / Passaporte) *</label>
@@ -350,7 +358,7 @@ export async function renderGestorTrabalhadores(app) {
                   </div>
                   <div class="form-group">
                     <label for="trab-nacionalidade">Nacionalidade (国籍)</label>
-                    <input type="text" id="trab-nacionalidade" value="Brasil (ブラジル)" />
+                    <input type="text" id="trab-nacionalidade" placeholder="Brasil (ブラジル)" />
                   </div>
                 </div>
               </div>
@@ -457,8 +465,8 @@ export async function renderGestorTrabalhadores(app) {
                 </p>
 
                 <!-- Box seletor de licenças -->
-                <div class="card" style="background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; padding: 1rem; margin-bottom: 1.25rem;">
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #e2e8f0; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div class="card" style="background: var(--color-bg); border: 1px solid var(--color-border); padding: 1rem; margin-bottom: 1.25rem;">
+                  <div style="font-size: 0.82rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                     <span>➕</span>
                     <span>Adicionar Licença ou Qualificação</span>
                   </div>
@@ -559,14 +567,14 @@ export async function renderGestorTrabalhadores(app) {
                     <label for="trab-valor-base">Valor Base (¥) *</label>
                     <div class="input-addon-wrapper">
                       <span class="input-addon-prefix">¥</span>
-                      <input type="number" id="trab-valor-base" step="1" min="0" placeholder="1500" required style="font-weight: 700; color: #4ade80;" />
+                      <input type="number" id="trab-valor-base" step="1" min="0" placeholder="1500" required style="font-weight: 700; color: var(--color-success);" />
                       <span class="input-addon-suffix" id="label-tipo-taxa">/hora</span>
                     </div>
                   </div>
                   <div class="form-group" style="padding-bottom: 0.5rem;">
                     <label class="checkbox-label">
                       <input type="checkbox" id="trab-ativo" checked />
-                      <span style="font-weight: 600; color: #f8fafc;">Trabalhador Ativo na Equipe (在籍中)</span>
+                      <span style="font-weight: 600; color: var(--color-text);">Trabalhador Ativo na Equipe (在籍中)</span>
                     </label>
                   </div>
                 </div>
@@ -671,33 +679,33 @@ export async function renderGestorTrabalhadores(app) {
           <!-- ======================================================== -->
           <!-- MODAL DE EXPORTAÇÃO DE CURRÍCULO JAPONÊS (履歴書 JIS A4)  -->
           <!-- ======================================================== -->
-          <div id="modal-exportar-rirekisho" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem;">
-            <div class="modal-content" style="width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; background: #1e293b; border: 1px solid #334155; border-radius: 1rem; color: #f8fafc; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+          <div id="modal-exportar-rirekisho" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem;">
+            <div class="modal-content" style="width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); color: var(--color-text); box-shadow: var(--shadow-xl);">
 
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem;">
                 <div>
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: #f8fafc;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--color-text);">
                       📄 Exportar Currículo Japonês (履歴書 JIS規格 A4)
                     </h2>
-                    <span class="badge-role-gestor">2 Páginas A4</span>
+                    <span style="background: var(--color-primary); color: #ffffff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: 700; letter-spacing: 0.05em;">2 Páginas A4</span>
                   </div>
-                  <p style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.25rem;">
+                  <p style="font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.25rem;">
                     Gera o modelo oficial JIS de 2 páginas preenchido com dados cadastrais, licenças industriais e histórico profissional.
                   </p>
                 </div>
-                <button type="button" id="btn-fechar-modal-rirekisho" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">✕</button>
+                <button type="button" id="btn-fechar-modal-rirekisho" style="background: none; border: none; color: var(--color-text-muted); font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">✕</button>
               </div>
 
               <!-- Opção de Tradução para Japonês Polido -->
-              <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+              <div style="background: var(--color-primary-50); border: 1.5px solid var(--color-primary-light); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
                 <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;">
-                  <input type="checkbox" id="chk-traduzir-japones" checked style="width: 1.15rem; height: 1.15rem; margin-top: 2px; accent-color: #0284c7;" />
+                  <input type="checkbox" id="chk-traduzir-japones" checked style="width: 1.15rem; height: 1.15rem; margin-top: 2px; accent-color: var(--color-primary);" />
                   <div>
-                    <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem;">
+                    <div style="font-weight: 700; color: var(--color-primary); font-size: 0.95rem;">
                       Traduzir e formatar dados para Japonês Polido (ビジネス日本語・敬語)
                     </div>
-                    <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.25rem; line-height: 1.4;">
+                    <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.25rem; line-height: 1.45;">
                       Converte termos em português para padrão corporativo japonês: cargos técnicos, sufixos oficiais de licenças (修了/取得/合格), auto-apresentação formal (志望動機・自己PR) e cláusula padrão de desejos (貴社の規定に従います).
                     </div>
                   </div>
@@ -708,46 +716,46 @@ export async function renderGestorTrabalhadores(app) {
               <div style="display: flex; flex-direction: column; gap: 0.85rem;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Nome / 氏名</label>
-                    <input type="text" id="modal-rir-nome" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Nome / 氏名</label>
+                    <input type="text" id="modal-rir-nome" class="admin-field-input" style="width: 100%; font-size: 0.88rem;" />
                   </div>
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Furigana / ふりがな</label>
-                    <input type="text" id="modal-rir-furigana" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Furigana / ふりがな</label>
+                    <input type="text" id="modal-rir-furigana" class="admin-field-input" style="width: 100%; font-size: 0.88rem;" />
                   </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Cargo / 職種 (Tradução em Japonês)</label>
-                    <input type="text" id="modal-rir-cargo" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Cargo / 職種 (Tradução em Japonês)</label>
+                    <input type="text" id="modal-rir-cargo" class="admin-field-input" style="width: 100%; font-size: 0.88rem;" />
                   </div>
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Tempo de Deslocamento (通勤時間)</label>
-                    <div style="display: flex; align-items: center; gap: 0.4rem;">
-                      <input type="number" id="modal-rir-comutacao-horas" value="0" min="0" max="12" style="width: 60px; padding: 0.4rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #fff;" />
-                      <span style="font-size: 0.8rem; color: #94a3b8;">h</span>
-                      <input type="number" id="modal-rir-comutacao-min" value="45" min="0" max="59" style="width: 60px; padding: 0.4rem; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #fff;" />
-                      <span style="font-size: 0.8rem; color: #94a3b8;">min</span>
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Tempo de Deslocamento (通勤時間)</label>
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                      <input type="number" id="modal-rir-comutacao-horas" value="0" min="0" max="12" class="admin-field-input" style="width: 65px; padding: 0.45rem; text-align: center; font-weight: 600;" />
+                      <span style="font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 600;">h</span>
+                      <input type="number" id="modal-rir-comutacao-min" value="45" min="0" max="59" class="admin-field-input" style="width: 65px; padding: 0.45rem; text-align: center; font-weight: 600;" />
+                      <span style="font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 600;">min</span>
                     </div>
                   </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Dependentes (扶養家族数)</label>
-                    <input type="number" id="modal-rir-dependentes" value="0" min="0" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Dependentes (扶養家族数)</label>
+                    <input type="number" id="modal-rir-dependentes" value="0" min="0" class="admin-field-input" style="width: 100%; font-size: 0.88rem;" />
                   </div>
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Possui Cônjuge (配偶者)</label>
-                    <select id="modal-rir-conjuge" class="form-input" style="width: 100%; font-size: 0.85rem;">
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Possui Cônjuge (配偶者)</label>
+                    <select id="modal-rir-conjuge" class="admin-field-select" style="width: 100%; font-size: 0.88rem;">
                       <option value="nao">Não (無)</option>
                       <option value="sim">Sim (有)</option>
                     </select>
                   </div>
                   <div>
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">Sustento Cônjuge (扶養義務)</label>
-                    <select id="modal-rir-obrigacao" class="form-input" style="width: 100%; font-size: 0.85rem;">
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">Sustento Cônjuge (扶養義務)</label>
+                    <select id="modal-rir-obrigacao" class="admin-field-select" style="width: 100%; font-size: 0.88rem;">
                       <option value="nao">Não (無)</option>
                       <option value="sim">Sim (有)</option>
                     </select>
@@ -755,35 +763,35 @@ export async function renderGestorTrabalhadores(app) {
                 </div>
 
                 <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                    <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                    <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600;">
                       Motivação e Auto-Apresentação (志望の動機、特技、アピールポイントなど)
                     </label>
                     <div style="display: flex; gap: 0.75rem;">
-                      <button type="button" id="btn-modal-gemini-ai" style="background: none; border: none; color: #a855f7; font-size: 0.75rem; cursor: pointer; text-decoration: underline;" title="Refinar com IA Gemini">
+                      <button type="button" id="btn-modal-gemini-ai" style="background: none; border: none; color: var(--color-primary); font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: underline;" title="Refinar com IA Gemini">
                         ✨ Aprimorar com IA Gemini
                       </button>
-                      <button type="button" id="btn-modal-regenerar-motivacao" style="background: none; border: none; color: #38bdf8; font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+                      <button type="button" id="btn-modal-regenerar-motivacao" style="background: none; border: none; color: var(--color-text-muted); font-size: 0.78rem; cursor: pointer; text-decoration: underline;">
                         ↺ Restaurar Padrão Polido
                       </button>
                     </div>
                   </div>
-                  <textarea id="modal-rir-motivacao" rows="4" style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #f8fafc; font-size: 0.82rem; line-height: 1.4; resize: vertical;"></textarea>
-                  <div id="modal-gemini-status" style="display: none; font-size: 0.75rem; color: #c084fc; margin-top: 0.25rem;"></div>
+                  <textarea id="modal-rir-motivacao" rows="4" class="admin-field-input" style="width: 100%; padding: 0.65rem; font-size: 0.85rem; line-height: 1.45; resize: vertical;"></textarea>
+                  <div id="modal-gemini-status" style="display: none; font-size: 0.75rem; color: var(--color-primary); margin-top: 0.25rem; font-weight: 500;"></div>
                 </div>
 
                 <div>
-                  <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 0.2rem;">
+                  <label style="font-size: 0.78rem; color: var(--color-text); font-weight: 600; display: block; margin-bottom: 0.3rem;">
                     Desejos Pessoais sobre Trabalho (本人希望記入欄)
                   </label>
-                  <input type="text" id="modal-rir-desejos" value="貴社の規定に従います。" class="form-input" style="width: 100%; font-size: 0.85rem;" />
+                  <input type="text" id="modal-rir-desejos" value="貴社の規定に従います。" class="admin-field-input" style="width: 100%; font-size: 0.88rem;" />
                 </div>
               </div>
 
               <!-- Botões de Ação do Modal -->
-              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #334155;">
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
                 <button type="button" class="btn btn-outline" id="btn-cancelar-modal-rirekisho">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-gerar-pdf-rirekisho" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7;">
+                <button type="button" class="btn btn-primary" id="btn-gerar-pdf-rirekisho" style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--color-primary); border-color: var(--color-primary); color: #ffffff; font-weight: 600;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                   <span>Visualizar & Imprimir / Salvar PDF (A4)</span>
                 </button>
@@ -804,8 +812,16 @@ export async function renderGestorTrabalhadores(app) {
     if (!lista || lista.length === 0) {
       return `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 2.5rem; color: #94a3b8;">
-            Nenhum trabalhador cadastrado. Clique em <strong>"Cadastrar Novo Trabalhador"</strong> acima para criar uma ficha cadastral.
+          <td colspan="7" style="text-align: center; padding: 3rem 1.5rem; color: var(--color-text-secondary);">
+            <div style="font-size: 2.2rem; margin-bottom: 0.5rem; opacity: 0.85;">📋</div>
+            <div style="font-size: 1.05rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.25rem;">Nenhum trabalhador cadastrado</div>
+            <div style="font-size: 0.85rem; color: var(--color-text-secondary); max-width: 480px; margin: 0 auto 1.25rem;">
+              A lista de funcionários está limpa. Clique abaixo para cadastrar a primeira ficha cadastral oficial (履歴書・労働者名簿).
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-empty-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Cadastrar Primeiro Trabalhador</span>
+            </button>
           </td>
         </tr>
       `;
@@ -861,7 +877,7 @@ export async function renderGestorTrabalhadores(app) {
               <button type="button" class="btn btn-outline btn-edit-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px;" title="Editar Ficha Cadastral">
                 Editar
               </button>
-              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #6366f1; color: #6366f1;" title="Ver e Apontar Horas">
+              <button type="button" class="btn btn-outline btn-timesheet-worker" data-id="${t.id}" style="font-size: 0.75rem; padding: 3px 6px; border-color: var(--color-primary); color: var(--color-primary);" title="Ver e Apontar Horas">
                 Horas
               </button>
               <button type="button" class="btn btn-outline btn-delete-worker" data-id="${t.id}" data-name="${escapeHtml(t.nome_alfabeto)}" style="font-size: 0.75rem; padding: 3px 6px; border-color: #ef4444; color: #ef4444;" title="Excluir Trabalhador (削除)">
@@ -905,7 +921,7 @@ export async function renderGestorTrabalhadores(app) {
 
     if (trabalhadorLicencas.length === 0) {
       containerLicencas.innerHTML = `
-        <div style="text-align: center; padding: 1.5rem; background: rgba(15, 23, 42, 0.4); border: 1px dashed #334155; border-radius: 8px; color: #94a3b8; font-size: 0.85rem;">
+        <div style="text-align: center; padding: 1.5rem; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; color: var(--color-text-secondary); font-size: 0.85rem;">
           <span style="font-size: 1.3rem; display: block; margin-bottom: 0.25rem;">📋</span>
           Nenhuma qualificação ou licença adicionada ainda. Utilize os seletores acima para adicionar certificações como <strong>Tamagake</strong>, <strong>Kuren</strong>, <strong>Solda</strong>, <strong>Carro/Moto</strong> ou personalizadas.
         </div>
@@ -920,8 +936,8 @@ export async function renderGestorTrabalhadores(app) {
             <span class="${lic.personalizado ? 'badge-licenca-custom' : 'badge-licenca-cat'}">
               ${escapeHtml(lic.categoria_icon || '📜')} ${escapeHtml(lic.categoria_nome || 'Licença')}
             </span>
-            <strong style="color: #f8fafc; font-size: 0.92rem;">${escapeHtml(lic.nome_ja || '')}</strong>
-            ${lic.nome_pt ? `<span style="color: #94a3b8; font-size: 0.82rem;">(${escapeHtml(lic.nome_pt)})</span>` : ''}
+            <strong style="color: var(--color-text); font-size: 0.92rem;">${escapeHtml(lic.nome_ja || '')}</strong>
+            ${lic.nome_pt ? `<span style="color: var(--color-text-muted); font-size: 0.82rem;">(${escapeHtml(lic.nome_pt)})</span>` : ''}
           </div>
           <button type="button" class="btn-remove-licenca" data-lic-id="${lic.id}" title="Remover esta qualificação da ficha">
             ✕ Excluir
@@ -930,23 +946,23 @@ export async function renderGestorTrabalhadores(app) {
 
         <div class="form-grid-5" style="margin-top: 0.5rem; gap: 0.65rem;">
           <div class="form-group" style="margin: 0;">
-            <label style="color: #94a3b8;">Data de Obtenção (取得年月)</label>
+            <label style="color: var(--color-text-secondary); font-weight: 500;">Data de Obtenção (取得年月)</label>
             <input type="date" class="lic-input-data" data-lic-id="${lic.id}" value="${escapeHtml(lic.data_obtencao || '')}" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="color: #94a3b8;">Nº Registro (修了証番号)</label>
+            <label style="color: var(--color-text-secondary); font-weight: 500;">Nº Registro (修了証番号)</label>
             <input type="text" class="lic-input-registro" data-lic-id="${lic.id}" placeholder="Ex: 第123456号" value="${escapeHtml(lic.numero_registro || '')}" style="font-family: monospace;" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="color: #38bdf8; font-weight: 600;">Complemento / Nível (補足・等級)</label>
-            <input type="text" class="lic-input-complemento" data-lic-id="${lic.id}" placeholder="Ex: JIS SA-3F, TN-P, 1級, N2" value="${escapeHtml(lic.complemento || '')}" style="border-color: #0284c7;" />
+            <label style="color: var(--color-primary); font-weight: 600;">Complemento / Nível (補足・等級)</label>
+            <input type="text" class="lic-input-complemento" data-lic-id="${lic.id}" placeholder="Ex: JIS SA-3F, TN-P, 1級, N2" value="${escapeHtml(lic.complemento || '')}" style="border-color: var(--color-primary);" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="color: #94a3b8;">Órgão Emissor (交付機関)</label>
+            <label style="color: var(--color-text-secondary); font-weight: 500;">Órgão Emissor (交付機関)</label>
             <input type="text" class="lic-input-orgao" data-lic-id="${lic.id}" placeholder="Ex: 愛知労働局長登録 / コマツ" value="${escapeHtml(lic.orgao_emissor || '')}" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="color: #94a3b8;">Validade (有効期限)</label>
+            <label style="color: var(--color-text-secondary); font-weight: 500;">Validade (有効期限)</label>
             <input type="date" class="lic-input-validade" data-lic-id="${lic.id}" value="${escapeHtml(lic.validade || '')}" />
           </div>
         </div>
@@ -954,11 +970,83 @@ export async function renderGestorTrabalhadores(app) {
     `).join('');
   }
 
+  // Limpa rigorosamente todos os campos do formulário para um novo cadastro
+  function limparFormularioTrabalhador() {
+    if (form) form.reset();
+
+    const idsParaLimpar = [
+      'trab-id',
+      'trab-nome-alfabeto',
+      'trab-nome-kanji',
+      'trab-nome-kana',
+      'trab-nascimento',
+      'trab-cep',
+      'trab-provincia',
+      'trab-cidade',
+      'trab-endereco',
+      'trab-telefone',
+      'trab-email',
+      'trab-visto',
+      'trab-zairyu',
+      'trab-validade-zairyu',
+      'trab-mynumber',
+      'trab-invoice',
+      'trab-cargo',
+      'trab-admissao',
+      'trab-valor-base',
+      'trab-banco-nome',
+      'trab-banco-agencia',
+      'trab-banco-conta',
+      'trab-banco-titular',
+      'trab-emergencia-nome',
+      'trab-emergencia-parentesco',
+      'trab-emergencia-telefone',
+      'trab-observacoes'
+    ];
+
+    idsParaLimpar.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    // Código do próximo trabalhador gerado automaticamente (0001, 0002, 0003...)
+    const trabCodigo = document.getElementById('trab-codigo');
+    if (trabCodigo) {
+      trabCodigo.value = gerarProximoIdTrabalhador(trabalhadores);
+      trabCodigo.readOnly = true;
+    }
+
+    // Valores padrão mínimos e limpos
+    const trabGenero = document.getElementById('trab-genero');
+    if (trabGenero) trabGenero.value = 'Masculino';
+
+    const trabNacionalidade = document.getElementById('trab-nacionalidade');
+    if (trabNacionalidade) trabNacionalidade.value = 'Brasil';
+
+    const trabContrato = document.getElementById('trab-contrato');
+    if (trabContrato) trabContrato.value = '業務委託';
+
+    const trabTipoCalculo = document.getElementById('trab-tipo-calculo');
+    if (trabTipoCalculo) trabTipoCalculo.value = 'por_hora';
+
+    const trabBancoTipo = document.getElementById('trab-banco-tipo');
+    if (trabBancoTipo) trabBancoTipo.value = '普通';
+
+    const trabAtivo = document.getElementById('trab-ativo');
+    if (trabAtivo) trabAtivo.checked = true;
+
+    const lbl = document.getElementById('label-tipo-taxa');
+    if (lbl) lbl.textContent = '/hora';
+
+    trabalhadorLicencas = [];
+    renderLicencasAdicionadas();
+  }
+
   // Alterna para visualização do formulário
   function openFormView(worker = null) {
     formError.style.display = 'none';
     formSuccess.style.display = 'none';
-    form.reset();
+    limparFormularioTrabalhador();
 
     const btnDelTopo = document.getElementById('btn-excluir-trabalhador-form-topo');
     const btnDelBottom = document.getElementById('btn-excluir-trabalhador-form-bottom');
@@ -973,7 +1061,11 @@ export async function renderGestorTrabalhadores(app) {
       formSubtitle.textContent = `Edição dos dados cadastrais e fiscais no padrão japonês (ID: ${worker.codigo_trabalhador})`;
 
       document.getElementById('trab-id').value = worker.id || '';
-      document.getElementById('trab-codigo').value = worker.codigo_trabalhador || '';
+      const trabCod = document.getElementById('trab-codigo');
+      if (trabCod) {
+        trabCod.value = worker.codigo_trabalhador || '';
+        trabCod.readOnly = true;
+      }
       document.getElementById('trab-nome-alfabeto').value = worker.nome_alfabeto || '';
       document.getElementById('trab-nome-kanji').value = worker.nome_kanji || '';
       document.getElementById('trab-nome-kana').value = worker.nome_kana || '';
@@ -998,7 +1090,7 @@ export async function renderGestorTrabalhadores(app) {
       document.getElementById('trab-cargo').value = worker.cargo_funcao || '';
       document.getElementById('trab-admissao').value = worker.data_admissao || '';
       document.getElementById('trab-tipo-calculo').value = worker.tipo_calculo || 'por_hora';
-      document.getElementById('trab-valor-base').value = worker.tipo_calculo === 'fixo' ? (worker.valor_diario || 0) : (worker.valor_hora || 0);
+      document.getElementById('trab-valor-base').value = worker.tipo_calculo === 'fixo' ? (worker.valor_diario ?? '') : (worker.valor_hora ?? '');
       document.getElementById('trab-ativo').checked = worker.ativo !== false;
 
       document.getElementById('trab-banco-nome').value = worker.banco_nome || '';
@@ -1018,6 +1110,7 @@ export async function renderGestorTrabalhadores(app) {
       trabalhadorLicencas = Array.isArray(worker.qualificacoes_licencas)
         ? JSON.parse(JSON.stringify(worker.qualificacoes_licencas))
         : [];
+      renderLicencasAdicionadas();
 
     } else {
       formTitle.textContent = 'Cadastrar Novo Trabalhador (履歴書)';
@@ -1028,25 +1121,9 @@ export async function renderGestorTrabalhadores(app) {
       if (btnDelTopo) btnDelTopo.style.display = 'none';
       if (btnDelBottom) btnDelBottom.style.display = 'none';
 
-      document.getElementById('trab-id').value = '';
-      // Sugere próximo código automático
-      const nextNum = trabalhadores.length + 1;
-      document.getElementById('trab-codigo').value = `TR-${String(nextNum).padStart(3, '0')}`;
-      document.getElementById('trab-genero').value = 'Masculino';
-      document.getElementById('trab-nacionalidade').value = 'Brasil';
-      document.getElementById('trab-contrato').value = '業務委託';
-      document.getElementById('trab-tipo-calculo').value = 'por_hora';
-      document.getElementById('trab-valor-base').value = 1500;
-      document.getElementById('trab-banco-tipo').value = '普通';
-      document.getElementById('trab-ativo').checked = true;
-
-      const lbl = document.getElementById('label-tipo-taxa');
-      if (lbl) lbl.textContent = '/hora';
-
-      trabalhadorLicencas = [];
+      // Garante que o URL não retenha parâmetros de edição
+      window.history.replaceState(null, '', '#/gestor-trabalhadores');
     }
-
-    renderLicencasAdicionadas();
 
     // Reset dos seletores de licenças
     if (selCategoriaLic) selCategoriaLic.value = '';
@@ -1065,6 +1142,7 @@ export async function renderGestorTrabalhadores(app) {
 
   // Retorna para a visualização da listagem
   function closeFormView() {
+    limparFormularioTrabalhador();
     viewForm.style.display = 'none';
     viewLista.style.display = 'block';
     window.history.replaceState(null, '', '#/gestor-trabalhadores');
@@ -1081,7 +1159,24 @@ export async function renderGestorTrabalhadores(app) {
       });
       return;
     }
+    window.history.replaceState(null, '', '#/gestor-trabalhadores');
     openFormView(null);
+  });
+
+  document.getElementById('btn-empty-novo-trabalhador')?.addEventListener('click', () => {
+    document.getElementById('btn-novo-trabalhador')?.click();
+  });
+
+  document.getElementById('btn-limpar-todos-trabalhadores')?.addEventListener('click', async () => {
+    if (confirm(`Atenção: Deseja realmente excluir TODOS os ${trabalhadores.length} trabalhadores cadastrados?\n\nEsta ação apagará permanentemente as fichas cadastrais e todas as folhas de ponto/horas associadas.`)) {
+      const btnLimpar = document.getElementById('btn-limpar-todos-trabalhadores');
+      if (btnLimpar) {
+        btnLimpar.disabled = true;
+        btnLimpar.textContent = 'Excluindo todos...';
+      }
+      await limparTodosTrabalhadores(user.id, supabase);
+      renderGestorTrabalhadores(app);
+    }
   });
 
   // Botão de ativar chave no banner
@@ -1339,7 +1434,7 @@ export async function renderGestorTrabalhadores(app) {
     return {
       id: id,
       foto_url: existing?.foto_url || '',
-      codigo_trabalhador: document.getElementById('trab-codigo')?.value?.trim() || 'TR-001',
+      codigo_trabalhador: document.getElementById('trab-codigo')?.value?.trim() || gerarProximoIdTrabalhador(trabalhadores),
       nome_alfabeto: document.getElementById('trab-nome-alfabeto')?.value?.trim() || '',
       nome_kanji: document.getElementById('trab-nome-kanji')?.value?.trim() || '',
       nome_kana: document.getElementById('trab-nome-kana')?.value?.trim() || '',
@@ -1536,9 +1631,12 @@ export async function renderGestorTrabalhadores(app) {
     const tipoCalculo = document.getElementById('trab-tipo-calculo').value;
     const valorBase = parseFloat(document.getElementById('trab-valor-base').value) || 0;
 
+    const codigoInput = document.getElementById('trab-codigo')?.value?.trim() || '';
+    const codigoFinal = codigoInput || (id ? (trabalhadores.find(t => t.id === id)?.codigo_trabalhador || '0001') : gerarProximoIdTrabalhador(trabalhadores));
+
     const payload = {
       gestor_id: user.id,
-      codigo_trabalhador: document.getElementById('trab-codigo').value.trim().toUpperCase(),
+      codigo_trabalhador: codigoFinal,
       nome_alfabeto: document.getElementById('trab-nome-alfabeto').value.trim(),
       nome_kanji: document.getElementById('trab-nome-kanji').value.trim() || null,
       nome_kana: document.getElementById('trab-nome-kana').value.trim() || null,

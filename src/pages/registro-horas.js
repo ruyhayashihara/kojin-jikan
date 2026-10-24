@@ -649,16 +649,16 @@ export async function renderRegistroHoras(app) {
 
       rows += `
         <tr id="row-${d}" class="${rowClass}">
-          <td class="col-date" style="line-height: 1.2;">
-            ${d}日<br><span style="font-size: 0.82em; color: var(--color-text-muted);">(${diaNome})</span>
+          <td class="col-date">
+            ${d}日<br><span class="timesheet-day-name">(${diaNome})</span>
           </td>
-          <td class="col-time" style="text-align: center;">${txtEntrada}</td>
-          <td class="col-time" style="text-align: center;">${txtSaida}</td>
-          <td class="col-time" style="text-align: center;">${txtIntervalo}</td>
-          <td class="col-total" style="text-align: center;">${txtTotal}</td>
-          <td class="col-extra" style="text-align: center;">${txtExtra}</td>
-          <td class="col-noturno" style="text-align: center;">${txtNoturno}</td>
-          <td class="col-subtotal" style="text-align: center; font-weight: 600;">${txtSubtotal}</td>
+          <td class="col-time">${txtEntrada}</td>
+          <td class="col-time">${txtSaida}</td>
+          <td class="col-time">${txtIntervalo}</td>
+          <td class="col-total">${txtTotal}</td>
+          <td class="col-extra">${txtExtra}</td>
+          <td class="col-noturno">${txtNoturno}</td>
+          <td class="col-subtotal">${txtSubtotal}</td>
         </tr>
       `;
     }
@@ -690,13 +690,13 @@ export async function renderRegistroHoras(app) {
             </div>
 
             ${isGestor ? `
-              <div class="card" style="margin-bottom: 1.25rem; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem; background: #1e293b; border: 1px solid #334155;">
-                <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+              <div class="card gestor-control-bar">
+                <div class="gestor-control-left">
                   <span class="badge-role-gestor">Modo Gestor</span>
-                  <label for="gestor-worker-select" style="font-weight: 600; font-size: 0.85rem; margin: 0; color: #cbd5e1;">
+                  <label for="gestor-worker-select" class="gestor-select-label">
                     Trabalhador Selecionado:
                   </label>
-                  <select id="gestor-worker-select" style="min-width: 260px; padding: 0.45rem 0.75rem; border-radius: 6px; background: #0f172a; border: 1px solid #475569; color: #f8fafc; font-size: 0.85rem; font-weight: 500;">
+                  <select id="gestor-worker-select" class="gestor-worker-select">
                     ${listaTrabalhadores.length === 0 ? '<option value="">Nenhum trabalhador cadastrado</option>' : ''}
                     ${listaTrabalhadores.map(w => `
                       <option value="${w.id}" ${w.id === selectedWorkerId ? 'selected' : ''}>
@@ -705,12 +705,14 @@ export async function renderRegistroHoras(app) {
                     `).join('')}
                   </select>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                  <a href="#/gestor-trabalhadores" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;">
-                    👥 Gerenciar Fichas (履歴書)
+                <div class="gestor-control-actions">
+                  <a href="#/gestor-trabalhadores" class="btn btn-outline btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Fichas (履歴書)</span>
                   </a>
-                  <a href="#/gestor-dashboard" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;">
-                    🏢 Painel Geral
+                  <a href="#/gestor-dashboard" class="btn btn-outline btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>Painel Geral</span>
                   </a>
                 </div>
               </div>
@@ -747,13 +749,13 @@ export async function renderRegistroHoras(app) {
                 <thead>
                   <tr>
                     <th class="col-date" title="日付 (Data)">日付</th>
-                    <th class="col-time" style="text-align: center;" title="出勤 (Entrada / 始業)">出勤</th>
-                    <th class="col-time" style="text-align: center;" title="退勤 (Saída / 終業)">退勤</th>
-                    <th class="col-time" style="text-align: center;" title="休憩 (Intervalo)">休憩</th>
-                    <th class="col-total" style="text-align: center;" title="実働 (Total de horas trabalhadas)">実働</th>
-                    <th class="col-extra" style="text-align: center;" title="残業 (Horas extras > 8h, +25%)">残業</th>
-                    <th class="col-noturno" style="text-align: center;" title="深夜 (Adicional noturno 22h〜5h, +25%)">深夜</th>
-                    <th class="col-subtotal" style="text-align: center;" title="小計 (Subtotal diário em ¥)">小計</th>
+                    <th class="col-time" title="出勤 (Entrada / 始業)">出勤</th>
+                    <th class="col-time" title="退勤 (Saída / 終業)">退勤</th>
+                    <th class="col-time" title="休憩 (Intervalo)">休憩</th>
+                    <th class="col-total" title="実働 (Total de horas trabalhadas)">実働</th>
+                    <th class="col-extra" title="残業 (Horas extras > 8h, +25%)">残業</th>
+                    <th class="col-noturno" title="深夜 (Adicional noturno 22h〜5h, +25%)">深夜</th>
+                    <th class="col-subtotal" title="小計 (Subtotal diário em ¥)">小計</th>
                   </tr>
                 </thead>
                 <tbody id="timesheet-body">
@@ -763,107 +765,108 @@ export async function renderRegistroHoras(app) {
             </div>
 
             <!-- Modal de Lançamento de Horas -->
-            <div id="modal-horas" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
-              <div class="modal-content" style="width: 100%; max-width: 440px; padding: 1.5rem; background: #1e1e1e; border-radius: 1rem; color: #f3f4f6; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                  <h2 id="modal-horas-title" style="font-size: 1.15rem; font-weight: 600; margin: 0;">YYYY-MM-DD の記録</h2>
-                  <span style="font-size: 0.72rem; background: rgba(59, 130, 246, 0.2); color: #93c5fd; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid rgba(59, 130, 246, 0.3);">労働基準法 +25%</span>
+            <div id="modal-horas" class="modal-overlay" style="display: none;">
+              <div class="modal-content-card">
+                <div class="modal-header-row">
+                  <h2 id="modal-horas-title" class="modal-header-title">YYYY-MM-DD の記録</h2>
+                  <span class="modal-badge-law">労働基準法 +25%</span>
                 </div>
                 <input type="hidden" id="modal-day" value="" />
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-entrada" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">入室時刻 (Entrada)</label>
-                    <input type="time" id="modal-entrada" class="input-time" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                <div class="modal-form-grid-2">
+                  <div class="modal-form-group">
+                    <label for="modal-entrada" class="modal-form-label">入室時刻 (Entrada)</label>
+                    <input type="time" id="modal-entrada" class="modal-input input-time" />
                   </div>
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-saida" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">退室時刻 (Saída)</label>
-                    <input type="time" id="modal-saida" class="input-time" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  <div class="modal-form-group">
+                    <label for="modal-saida" class="modal-form-label">退室時刻 (Saída)</label>
+                    <input type="time" id="modal-saida" class="modal-input input-time" />
                   </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-intervalo" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">休憩時間 (Intervalo min)</label>
-                    <input type="number" id="modal-intervalo" placeholder="60" min="0" step="5" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                <div class="modal-form-grid-2">
+                  <div class="modal-form-group">
+                    <label for="modal-intervalo" class="modal-form-label">休憩時間 (Intervalo min)</label>
+                    <input type="number" id="modal-intervalo" class="modal-input" placeholder="60" min="0" step="5" />
                   </div>
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-total-preview" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">実働時間 (Total Líquido)</label>
-                    <input type="text" id="modal-total-preview" readonly style="background: #252525; color: #60a5fa; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%; font-weight: 600;" value="0.0h" />
+                  <div class="modal-form-group">
+                    <label for="modal-total-preview" class="modal-form-label">実働時間 (Total Líquido)</label>
+                    <input type="text" id="modal-total-preview" readonly class="modal-input modal-input-readonly" value="0.0h" />
                   </div>
                 </div>
 
                 <!-- Adicionais Japão: Horas Extras (>8h) e Adicional Noturno (22h-5h) com +25% -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid #374151; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.85rem;">
-                  <div style="font-size: 0.75rem; font-weight: 600; color: #d1d5db; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                <div class="modal-adicionais-panel">
+                  <div class="modal-adicionais-header">
                     <span>割増賃金 (Adicionais Japão +25%)</span>
-                    <span style="color: #9ca3af; font-size: 0.7rem;">自動計算・手動調整可</span>
+                    <span class="hint">自動計算・手動調整可</span>
                   </div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                    <div class="form-group" style="gap: 0.25rem;">
-                      <label for="modal-extra" style="color: #fbbf24; font-size: 0.72rem; font-weight: 500;">残業 (>8h) (+25%)</label>
-                      <div style="display: flex; align-items: center; gap: 0.25rem;">
-                        <input type="number" id="modal-extra" step="0.01" min="0" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.45rem; width: 100%;" value="0" />
-                        <span style="font-size: 0.75rem; color: #9ca3af;">h</span>
+                  <div class="modal-form-grid-2">
+                    <div class="modal-form-group">
+                      <label for="modal-extra" class="modal-label-extra">残業 (>8h) (+25%)</label>
+                      <div class="modal-input-unit-wrap">
+                        <input type="number" id="modal-extra" class="modal-input" step="0.01" min="0" value="0" />
+                        <span class="modal-unit-tag">h</span>
                       </div>
                     </div>
-                    <div class="form-group" style="gap: 0.25rem;">
-                      <label for="modal-adicional-noturno" style="color: #a78bfa; font-size: 0.72rem; font-weight: 500;">深夜 (22h〜5h) (+25%)</label>
-                      <div style="display: flex; align-items: center; gap: 0.25rem;">
-                        <input type="number" id="modal-adicional-noturno" step="0.01" min="0" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.45rem; width: 100%;" value="0" />
-                        <span style="font-size: 0.75rem; color: #9ca3af;">h</span>
+                    <div class="modal-form-group">
+                      <label for="modal-adicional-noturno" class="modal-label-noturno">深夜 (22h〜5h) (+25%)</label>
+                      <div class="modal-input-unit-wrap">
+                        <input type="number" id="modal-adicional-noturno" class="modal-input" step="0.01" min="0" value="0" />
+                        <span class="modal-unit-tag">h</span>
                       </div>
                     </div>
                   </div>
                   <input type="hidden" id="modal-adicional-fim-semana" value="0" />
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-tipo-calculo" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">Tipo de Cálculo</label>
-                    <select id="modal-tipo-calculo" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;">
+                <div class="modal-form-grid-2">
+                  <div class="modal-form-group">
+                    <label for="modal-tipo-calculo" class="modal-form-label">Tipo de Cálculo</label>
+                    <select id="modal-tipo-calculo" class="modal-input">
                       <option value="por_hora">Por hora (時給)</option>
                       <option value="fixo">Fixo por dia (日給)</option>
                     </select>
                   </div>
-                  <div class="form-group" style="gap: 0.25rem;">
-                    <label for="modal-valor-diario" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">Valor (¥)</label>
-                    <input type="number" id="modal-valor-diario" step="1" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                  <div class="modal-form-group">
+                    <label for="modal-valor-diario" class="modal-form-label">Valor (¥)</label>
+                    <input type="number" id="modal-valor-diario" class="modal-input" step="1" />
                   </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 0.85rem; gap: 0.25rem;">
-                  <label for="modal-obs" style="color: #9ca3af; font-size: 0.75rem; font-weight: 500;">メモ (Observação)</label>
-                  <input type="text" id="modal-obs" placeholder="任意のメモ" style="background: #2d2d2d; color: #fff; border: 1px solid #404040; border-radius: 0.5rem; padding: 0.5rem; width: 100%;" />
+                <div class="modal-form-group" style="margin-bottom: 0.85rem;">
+                  <label for="modal-obs" class="modal-form-label">メモ (Observação)</label>
+                  <input type="text" id="modal-obs" class="modal-input" placeholder="任意のメモ" />
                 </div>
 
                 <!-- Preview de Subtotal diário com breakdown claro -->
-                <div id="modal-breakdown" style="background: #111827; border: 1px solid #1f2937; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.8rem;">
-                  <div style="display: flex; justify-content: space-between; color: #9ca3af; margin-bottom: 0.25rem;">
+                <div id="modal-breakdown" class="modal-breakdown-panel">
+                  <div class="modal-breakdown-row">
                     <span>Base:</span>
                     <span id="modal-prev-base">¥0</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; color: #fbbf24; margin-bottom: 0.25rem;">
+                  <div class="modal-breakdown-row row-extra">
                     <span>Horas Extras (+25%):</span>
                     <span id="modal-prev-extra">+¥0</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; color: #a78bfa; margin-bottom: 0.25rem;">
+                  <div class="modal-breakdown-row row-noturno">
                     <span>Adic. Noturno 22h-5h (+25%):</span>
                     <span id="modal-prev-noturno">+¥0</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; color: #fff; font-weight: 600; padding-top: 0.4rem; border-top: 1px solid #374151; font-size: 0.9rem;">
+                  <div class="modal-breakdown-total">
                     <span>Total estimado do dia:</span>
-                    <span id="modal-prev-subtotal" style="color: #34d399;">¥0</span>
+                    <span id="modal-prev-subtotal" class="subtotal-accent">¥0</span>
                   </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1rem;">
-                  <button type="button" id="modal-btn-excluir" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: none;">
-                    🗑️ 削除 (Excluir)
+                <div class="modal-actions-row">
+                  <button type="button" id="modal-btn-excluir" class="btn btn-outline btn-sm" style="color: var(--color-error); border-color: var(--color-error-border); display: none;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>Excluir (削除)</span>
                   </button>
-                  <div style="display: flex; gap: 0.75rem; margin-left: auto;">
-                    <button type="button" id="modal-btn-cancelar" style="background: transparent; border: 1px solid #404040; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">キャンセル (Cancelar)</button>
-                    <button type="button" id="modal-btn-salvar" style="background: #2563eb; border: none; color: #fff; padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">保存 (Salvar)</button>
+                  <div class="modal-actions-right">
+                    <button type="button" id="modal-btn-cancelar" class="btn btn-outline">Cancelar (キャンセル)</button>
+                    <button type="button" id="modal-btn-salvar" class="btn btn-primary">Salvar (保存)</button>
                   </div>
                 </div>
               </div>
@@ -876,12 +879,12 @@ export async function renderRegistroHoras(app) {
                   <span class="calc-value" id="calc-total-horas">${formatHours(calcTotalsFromRecords().totalHoras)} (${decimalToHHMM(calcTotalsFromRecords().totalHoras)})</span>
                 </div>
                 <div class="calc-item">
-                  <span class="calc-label" style="color: #d97706;">Horas Extras (+25%)</span>
-                  <span class="calc-value" id="calc-horas-extras" style="color: #d97706; font-size: var(--font-size-md);">0h</span>
+                  <span class="calc-label calc-label-extra">Horas Extras (+25%)</span>
+                  <span class="calc-value calc-label-extra" id="calc-horas-extras" style="font-size: var(--font-size-md);">0h</span>
                 </div>
                 <div class="calc-item">
-                  <span class="calc-label" style="color: #7c3aed;">Adic. Noturno (+25%)</span>
-                  <span class="calc-value" id="calc-horas-noturnas" style="color: #7c3aed; font-size: var(--font-size-md);">0h</span>
+                  <span class="calc-label calc-label-noturno">Adic. Noturno (+25%)</span>
+                  <span class="calc-value calc-label-noturno" id="calc-horas-noturnas" style="font-size: var(--font-size-md);">0h</span>
                 </div>
                 <div class="calc-item">
                   <span class="calc-label">Valor por hora (¥)</span>
@@ -949,7 +952,7 @@ export async function renderRegistroHoras(app) {
       try {
         printWin = window.open('about:blank', '_blank');
         if (printWin) {
-          printWin.document.write('<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;"><div style="text-align:center;"><div style="font-size:24px;margin-bottom:12px;">⏳</div><div style="font-size:16px;font-weight:600;margin-bottom:6px;">Gerando Folha de Ponto / 勤務実績表...</div><div style="font-size:13px;color:#94a3b8;">Aguarde um instante enquanto compilamos os dados.</div></div></body></html>');
+          printWin.document.write('<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style="display:flex; align-items:center; justify-content:center; height:100vh; margin:0; background:#0f172a; color:#ffffff;"><div style="text-align:center;"><div style="font-size:24px;margin-bottom:12px;">⏳</div><div style="font-size:16px;font-weight:600;margin-bottom:6px;">Gerando Folha de Ponto / 勤務実績表...</div><div style="font-size:14px;color:#94a3b8;">Aguarde um instante enquanto compilamos os dados.</div></div></body></html>');
           printWin.document.close();
         }
       } catch (e) { }
