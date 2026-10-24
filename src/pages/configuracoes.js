@@ -224,8 +224,15 @@ export async function renderConfiguracoes(app) {
         await supabase.from('recibo').delete().eq('usuario_id', userId);
       }
       sessionStorage.clear();
-      localStorage.removeItem('keiro_mock_trabalhadores');
-      localStorage.removeItem('keiro_mock_registros');
+      try {
+        if (userId) {
+          localStorage.removeItem(`keiro_trabalhadores_${userId}`);
+          localStorage.removeItem(`keiro_registros_${userId}`);
+        }
+        localStorage.removeItem('keiro_mock_trabalhadores');
+        localStorage.removeItem('keiro_mock_registros');
+        localStorage.removeItem('keiro_gestor_selected_worker');
+      } catch (e) { }
 
       alert('Cadastro excluído com sucesso.');
       await supabase.auth.signOut();

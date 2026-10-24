@@ -27,11 +27,14 @@ export async function renderGestorDashboard(app) {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  // Carrega trabalhadores deste gestor (ou inicializa os 10 fictícios)
+  // Carrega trabalhadores deste gestor (inicia 100% limpo para nova conta)
   const { trabalhadores } = await loadOrInitTrabalhadores(user.id, supabase);
 
-  // Carrega registros de horas do mês atual para toda a equipe (~250h por trabalhador)
-  const registrosMes = await getAllRegistrosForMonthEquipe(currentYear, currentMonth, supabase);
+  // Lista de IDs dos trabalhadores deste gestor para busca estrita e isolada
+  const workerIds = (trabalhadores || []).map(t => t.id).filter(Boolean);
+
+  // Carrega registros de horas do mês atual APENAS para os trabalhadores deste gestor
+  const registrosMes = await getAllRegistrosForMonthEquipe(user.id, currentYear, currentMonth, supabase, workerIds);
 
   // Consolida métricas
   const totalTrabalhadores = trabalhadores.length;

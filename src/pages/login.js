@@ -158,6 +158,14 @@ export async function renderLogin(app) {
         console.warn('Erro ao verificar tipo_perfil:', err);
       }
 
+      // Limpa dados residuais e seleção de trabalhador de sessões anteriores
+      sessionStorage.removeItem('keiro_gestor_selected_worker');
+      try {
+        localStorage.removeItem('keiro_mock_trabalhadores');
+        localStorage.removeItem('keiro_mock_registros');
+        localStorage.removeItem('keiro_gestor_selected_worker');
+      } catch (e) { }
+
       // Armazena a role ativa e permissão de administrador na sessão
       const adminStatus = isUsuarioAdmin(user);
       sessionStorage.setItem('keiro_is_admin', adminStatus ? 'true' : 'false');

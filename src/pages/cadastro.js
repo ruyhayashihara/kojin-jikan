@@ -172,6 +172,14 @@ export async function renderCadastro(app) {
         }
       }
 
+      // Limpa dados residuais de sessões ou contas anteriores do navegador
+      sessionStorage.clear();
+      try {
+        localStorage.removeItem('keiro_mock_trabalhadores');
+        localStorage.removeItem('keiro_mock_registros');
+        localStorage.removeItem('keiro_gestor_selected_worker');
+      } catch (e) { }
+
       sessionStorage.setItem('keiro_active_role', currentRole);
 
       if (data?.session) {

@@ -218,6 +218,10 @@ export async function renderRegistroHoras(app) {
         selectedWorker = listaTrabalhadores[0];
         selectedWorkerId = selectedWorker.id;
         sessionStorage.setItem('keiro_gestor_selected_worker', selectedWorkerId);
+      } else if (listaTrabalhadores.length === 0) {
+        selectedWorker = null;
+        selectedWorkerId = '';
+        sessionStorage.removeItem('keiro_gestor_selected_worker');
       }
     } catch (e) {
       console.warn('Erro ao carregar lista de trabalhadores:', e);

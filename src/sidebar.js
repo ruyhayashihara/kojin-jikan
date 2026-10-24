@@ -296,7 +296,12 @@ export function bindSidebarEvents() {
 
   // Logout
   document.getElementById('sidebar-logout')?.addEventListener('click', async () => {
-    sessionStorage.removeItem('keiro_is_admin');
+    sessionStorage.clear();
+    try {
+      localStorage.removeItem('keiro_mock_trabalhadores');
+      localStorage.removeItem('keiro_mock_registros');
+      localStorage.removeItem('keiro_gestor_selected_worker');
+    } catch (e) { }
     await supabase.auth.signOut();
     navigate('/login');
   });

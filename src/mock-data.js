@@ -564,81 +564,111 @@ export function gerarProximoIdTrabalhador(listaTrabalhadores = []) {
 }
 
 /**
- * Inicializa ou carrega a lista de trabalhadores em memória / localStorage
+ * Retorna a chave de armazenamento isolada por usuário para trabalhadores
  */
-export function getStoredTrabalhadores() {
+export function getWorkerStorageKey(userId) {
+  return userId ? `keiro_trabalhadores_${userId}` : 'keiro_trabalhadores_guest';
+}
+
+/**
+ * Retorna a chave de armazenamento isolada por usuário para registros de horas
+ */
+export function getRecordStorageKey(userId) {
+  return userId ? `keiro_registros_${userId}` : 'keiro_registros_guest';
+}
+
+// Remove chaves legadas globais para evitar contaminação entre contas
+try {
+  localStorage.removeItem('keiro_mock_trabalhadores');
+  localStorage.removeItem('keiro_mock_registros');
+} catch (e) { }
+
+/**
+ * Inicializa ou carrega a lista de trabalhadores em memória / localStorage para o usuário específico
+ */
+export function getStoredTrabalhadores(userId) {
   try {
-    const raw = localStorage.getItem('keiro_mock_trabalhadores');
+    const key = getWorkerStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (raw !== null && raw !== '') return JSON.parse(raw);
   } catch (e) { }
   return null;
 }
 
 /**
- * Salva trabalhadores no cache local
+ * Salva trabalhadores no cache local do usuário específico
  */
-export function setStoredTrabalhadores(list) {
+export function setStoredTrabalhadores(list, userId) {
   try {
-    localStorage.setItem('keiro_mock_trabalhadores', JSON.stringify(list || []));
+    const key = getWorkerStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(list || []));
   } catch (e) { }
 }
 
 /**
- * Inicializa ou carrega os registros de horas em memória / localStorage
+ * Inicializa ou carrega os registros de horas em memória / localStorage para o usuário específico
  */
-export function getStoredRegistros() {
+export function getStoredRegistros(userId) {
   try {
-    const raw = localStorage.getItem('keiro_mock_registros');
+    const key = getRecordStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (raw !== null && raw !== '') return JSON.parse(raw);
   } catch (e) { }
   return null;
 }
 
 /**
- * Salva registros no cache local
+ * Salva registros no cache local do usuário específico
  */
-export function setStoredRegistros(records) {
+export function setStoredRegistros(records, userId) {
   try {
-    localStorage.setItem('keiro_mock_registros', JSON.stringify(records || {}));
+    const key = getRecordStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(records || {}));
   } catch (e) { }
 }
 
 /**
- * Inicializa ou carrega a lista de trabalhadores (inicia limpa sem injetar dados fictícios automaticamente)
+ * Inicializa ou carrega a lista de trabalhadores para um gestor específico.
+ * Para novas contas, NUNCA injeta dados fictícios ou de outras contas (inicia 100% limpo).
  */
 export async function loadOrInitTrabalhadores(userId, supabase) {
-  // 1. Tenta buscar do Supabase
-  try {
-    const { data, error } = await supabase
-      .from('trabalhador')
-      .select('*')
-      .eq('gestor_id', userId)
-      .order('codigo_trabalhador', { ascending: true });
+  if (!userId) {
+    return { trabalhadores: [], source: 'local' };
+  }
 
-    // Se a consulta teve sucesso, retorna os registros (mesmo lista vazia [])
-    if (!error && Array.isArray(data)) {
-      setStoredTrabalhadores(data);
-      return { trabalhadores: data, source: 'supabase' };
+  // 1. Tenta buscar do Supabase para este gestor específico
+  try {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('trabalhador')
+        .select('*')
+        .eq('gestor_id', userId)
+        .order('codigo_trabalhador', { ascending: true });
+
+      // Se a consulta teve sucesso, salva no cache exclusivo deste usuário e retorna os registros
+      if (!error && Array.isArray(data)) {
+        setStoredTrabalhadores(data, userId);
+        return { trabalhadores: data, source: 'supabase' };
+      }
     }
   } catch (e) { }
 
-  // 2. Verifica se temos no cache local
-  const cached = getStoredTrabalhadores();
+  // 2. Verifica se temos no cache local exclusivo deste usuário
+  const cached = getStoredTrabalhadores(userId);
   if (cached !== null && Array.isArray(cached)) {
     return { trabalhadores: cached, source: 'local' };
   }
 
-  // 3. Primeira execução: inicializa lista vazia (sem dados fictícios automáticos)
-  setStoredTrabalhadores([]);
+  // 3. Primeira execução para este novo usuário: inicializa lista vazia (SEM DADOS DE OUTRAS CONTAS)
+  setStoredTrabalhadores([], userId);
   return { trabalhadores: [], source: 'local' };
 }
 
 /**
- * Gera 1 ano (12 meses) de registros com média de ~250h/mês para todos os trabalhadores (utilitário sob demanda)
+ * Gera registros para trabalhadores do gestor especificado (sob demanda exclusiva)
  */
 export function initMockYearRecordsForAll(workers, userId) {
-  let allRecords = getStoredRegistros() || {};
-  // 12 meses anteriores: Nov/2025 até Out/2026
+  let allRecords = getStoredRegistros(userId) || {};
   (workers || []).forEach(w => {
     const recs = generateYearRecordsForWorker(w.id, userId, 2025, 11, 12);
     recs.forEach(r => {
@@ -646,7 +676,7 @@ export function initMockYearRecordsForAll(workers, userId) {
       allRecords[key] = r;
     });
   });
-  setStoredRegistros(allRecords);
+  setStoredRegistros(allRecords, userId);
   return allRecords;
 }
 
@@ -654,21 +684,25 @@ export function initMockYearRecordsForAll(workers, userId) {
  * Carrega registros diários de um trabalhador para o mês e ano especificados
  */
 export async function getRegistrosForWorkerMonth(workerId, userId, year, month, supabase) {
-  // 1. Tenta Supabase
+  if (!workerId) return [];
+
+  // 1. Tenta Supabase filtrado por trabalhador
   try {
-    const { data, error } = await supabase
-      .from('registro_diario')
-      .select('*')
-      .eq('trabalhador_id', workerId)
-      .eq('ano', year)
-      .eq('mes', month);
-    if (!error && data && data.length > 0) {
-      return data;
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('registro_diario')
+        .select('*')
+        .eq('trabalhador_id', workerId)
+        .eq('ano', year)
+        .eq('mes', month);
+      if (!error && data && data.length > 0) {
+        return data;
+      }
     }
   } catch (e) { }
 
-  // 2. Busca local sem auto-geração indesejada
-  const allRecords = getStoredRegistros() || {};
+  // 2. Busca local no cache exclusivo deste usuário
+  const allRecords = getStoredRegistros(userId) || {};
   const prefix = `${year}-${String(month).padStart(2, '0')}`;
   const matched = [];
   Object.values(allRecords).forEach(r => {
@@ -681,27 +715,37 @@ export async function getRegistrosForWorkerMonth(workerId, userId, year, month, 
 }
 
 /**
- * Carrega todos os registros do mês para a equipe toda
+ * Carrega todos os registros do mês para a equipe do gestor.
+ * Se o gestor não tiver trabalhadores cadastrados, retorna imediatamente uma lista vazia.
  */
-export async function getAllRegistrosForMonthEquipe(year, month, supabase) {
-  // 1. Tenta Supabase
+export async function getAllRegistrosForMonthEquipe(userId, year, month, supabase, workerIds = []) {
+  // Se o usuário não tem trabalhadores cadastrados, NUNCA pode ter registros de equipe
+  if (!workerIds || workerIds.length === 0) {
+    return [];
+  }
+
+  // 1. Tenta Supabase com filtro estrito pelos IDs dos trabalhadores deste gestor
   try {
-    const { data, error } = await supabase
-      .from('registro_diario')
-      .select('*')
-      .eq('ano', year)
-      .eq('mes', month);
-    if (!error && data && data.length > 0) {
-      return data;
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('registro_diario')
+        .select('*')
+        .in('trabalhador_id', workerIds)
+        .eq('ano', year)
+        .eq('mes', month);
+      if (!error && Array.isArray(data)) {
+        return data;
+      }
     }
   } catch (e) { }
 
-  // 2. Busca local
-  const allRecords = getStoredRegistros() || {};
+  // 2. Busca no cache local exclusivo deste gestor
+  const allRecords = getStoredRegistros(userId) || {};
   const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  const workerSet = new Set(workerIds);
   const matched = [];
   Object.values(allRecords).forEach(r => {
-    if (r.data && r.data.startsWith(prefix)) {
+    if (r.trabalhador_id && workerSet.has(r.trabalhador_id) && r.data && r.data.startsWith(prefix)) {
       matched.push(r);
     }
   });
@@ -709,7 +753,7 @@ export async function getAllRegistrosForMonthEquipe(year, month, supabase) {
 }
 
 /**
- * Força a regeneração / reset dos 10 funcionários e 1 ano de horas
+ * Força a regeneração / reset dos funcionários e horas exclusivamente para o gestor solicitante
  */
 export function resetAndRegenerateMockData(userId) {
   const novosTrabalhadores = MOCK_TRABALHADORES.map((t, i) => ({
@@ -718,7 +762,7 @@ export function resetAndRegenerateMockData(userId) {
     gestor_id: userId,
     created_at: new Date().toISOString()
   }));
-  setStoredTrabalhadores(novosTrabalhadores);
+  setStoredTrabalhadores(novosTrabalhadores, userId);
   const allRecords = {};
   novosTrabalhadores.forEach(w => {
     const recs = generateYearRecordsForWorker(w.id, userId, 2025, 11, 12);
@@ -727,7 +771,7 @@ export function resetAndRegenerateMockData(userId) {
       allRecords[key] = r;
     });
   });
-  setStoredRegistros(allRecords);
+  setStoredRegistros(allRecords, userId);
   return { trabalhadores: novosTrabalhadores, recordsCount: Object.keys(allRecords).length };
 }
 
@@ -737,14 +781,14 @@ export function resetAndRegenerateMockData(userId) {
 export async function excluirTrabalhador(workerId, userId, supabase) {
   if (!workerId) return false;
 
-  // 1. Remove do cache local
+  // 1. Remove do cache local do gestor
   try {
-    const list = getStoredTrabalhadores() || [];
+    const list = getStoredTrabalhadores(userId) || [];
     const updated = list.filter(t => t.id !== workerId);
-    setStoredTrabalhadores(updated);
+    setStoredTrabalhadores(updated, userId);
 
     // Remove registros de horas associados a este trabalhador
-    const records = getStoredRegistros();
+    const records = getStoredRegistros(userId);
     if (records) {
       Object.keys(records).forEach(k => {
         if (k.startsWith(workerId + '_') || records[k]?.trabalhador_id === workerId) {
@@ -753,9 +797,9 @@ export async function excluirTrabalhador(workerId, userId, supabase) {
       });
       // Se não sobrou nenhum trabalhador, limpa os registros completamente
       if (updated.length === 0) {
-        setStoredRegistros({});
+        setStoredRegistros({}, userId);
       } else {
-        setStoredRegistros(records);
+        setStoredRegistros(records, userId);
       }
     }
   } catch (e) {
@@ -776,13 +820,13 @@ export async function excluirTrabalhador(workerId, userId, supabase) {
 }
 
 /**
- * Exclui todos os trabalhadores cadastrados e todas as folhas de ponto/horas associadas
+ * Exclui todos os trabalhadores cadastrados e todas as folhas de ponto/horas associadas do gestor
  */
 export async function limparTodosTrabalhadores(userId, supabase) {
-  // 1. Limpa o cache local
+  // 1. Limpa o cache local do usuário
   try {
-    setStoredTrabalhadores([]);
-    setStoredRegistros({});
+    setStoredTrabalhadores([], userId);
+    setStoredRegistros({}, userId);
   } catch (e) {
     console.warn('Erro ao limpar cache local:', e);
   }
@@ -807,3 +851,4 @@ export async function limparTodosTrabalhadores(userId, supabase) {
 
   return true;
 }
+

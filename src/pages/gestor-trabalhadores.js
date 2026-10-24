@@ -1704,8 +1704,8 @@ export async function renderGestorTrabalhadores(app) {
 
     } catch (err) {
       console.warn('Erro ao salvar trabalhador no Supabase, mantendo sincronizado localmente:', err);
-      // Fallback para cache local
-      let list = getStoredTrabalhadores() || trabalhadores;
+      // Fallback para cache local exclusivo deste gestor
+      let list = getStoredTrabalhadores(user.id) || trabalhadores;
       if (id) {
         const idx = list.findIndex(t => t.id === id);
         if (idx !== -1) list[idx] = { ...list[idx], ...payload, id };
@@ -1713,7 +1713,7 @@ export async function renderGestorTrabalhadores(app) {
         const newObj = { ...payload, id: `mock-worker-${Date.now()}` };
         list.push(newObj);
       }
-      setStoredTrabalhadores(list);
+      setStoredTrabalhadores(list, user.id);
 
       formSuccess.textContent = 'Ficha cadastral salva com sucesso!';
       formSuccess.style.display = 'block';
