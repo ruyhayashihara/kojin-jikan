@@ -494,6 +494,37 @@ a:hover {
   white-space: nowrap;
 }
 
+/* Alinhamento rigoroso dos campos das licenças */
+.licenca-item-card .form-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.licenca-item-card .form-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.licenca-item-card .form-group label {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  min-height: 2.1rem;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.licenca-item-card .form-group input {
+  height: 38px;
+  margin-top: auto;
+  box-sizing: border-box;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.55rem;
+}
+
 .empty-licencas-state {
   text-align: center;
   padding: 2rem 1rem;

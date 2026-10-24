@@ -878,23 +878,23 @@ export async function renderGestorTrabalhadores(app) {
 
         <div class="form-grid-5" style="margin-top: 0.5rem; gap: 0.65rem;">
           <div class="form-group" style="margin: 0;">
-            <label style="font-size: 0.72rem; color: #94a3b8;">Data de Obtenção (取得年月)</label>
+            <label style="color: #94a3b8;">Data de Obtenção (取得年月)</label>
             <input type="date" class="lic-input-data" data-lic-id="${lic.id}" value="${escapeHtml(lic.data_obtencao || '')}" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="font-size: 0.72rem; color: #94a3b8;">Nº Registro / Licença (修了証番号)</label>
+            <label style="color: #94a3b8;">Nº Registro (修了証番号)</label>
             <input type="text" class="lic-input-registro" data-lic-id="${lic.id}" placeholder="Ex: 第123456号" value="${escapeHtml(lic.numero_registro || '')}" style="font-family: monospace;" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="font-size: 0.72rem; color: #38bdf8; font-weight: 600;">Complemento / Nível (補足・種別・等級)</label>
+            <label style="color: #38bdf8; font-weight: 600;">Complemento / Nível (補足・等級)</label>
             <input type="text" class="lic-input-complemento" data-lic-id="${lic.id}" placeholder="Ex: JIS SA-3F, TN-P, 1級, N2" value="${escapeHtml(lic.complemento || '')}" style="border-color: #0284c7;" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="font-size: 0.72rem; color: #94a3b8;">Órgão Emissor / Autoescola (交付機関・教習所)</label>
-            <input type="text" class="lic-input-orgao" data-lic-id="${lic.id}" placeholder="Ex: 愛知労働局長登録 / コマツ教習所" value="${escapeHtml(lic.orgao_emissor || '')}" />
+            <label style="color: #94a3b8;">Órgão Emissor (交付機関)</label>
+            <input type="text" class="lic-input-orgao" data-lic-id="${lic.id}" placeholder="Ex: 愛知労働局長登録 / コマツ" value="${escapeHtml(lic.orgao_emissor || '')}" />
           </div>
           <div class="form-group" style="margin: 0;">
-            <label style="font-size: 0.72rem; color: #94a3b8;">Validade / Renovação (有効期限)</label>
+            <label style="color: #94a3b8;">Validade (有効期限)</label>
             <input type="date" class="lic-input-validade" data-lic-id="${lic.id}" value="${escapeHtml(lic.validade || '')}" />
           </div>
         </div>
