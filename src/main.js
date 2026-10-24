@@ -11,6 +11,7 @@ import { renderDeclaracao } from './pages/declaracao.js';
 import { renderHistorico } from './pages/historico.js';
 import { renderGestorDashboard } from './pages/gestor-dashboard.js';
 import { renderGestorTrabalhadores } from './pages/gestor-trabalhadores.js';
+import { renderAdminLicencas } from './pages/admin-licencas.js';
 
 // Registrar todas as rotas
 registerRoute('/login', renderLogin);
@@ -19,6 +20,7 @@ registerRoute('/dashboard', renderDashboard);
 registerRoute('/gestor-dashboard', renderGestorDashboard);
 registerRoute('/gestor-trabalhadores', renderGestorTrabalhadores);
 registerRoute('/gestor-trabalhador-form', renderGestorTrabalhadores);
+registerRoute('/admin-licencas', renderAdminLicencas);
 registerRoute('/configuracoes', renderConfiguracoes);
 registerRoute('/registro-horas', renderRegistroHoras);
 registerRoute('/recibos', renderRecibos);

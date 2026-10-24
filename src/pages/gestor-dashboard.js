@@ -5,6 +5,8 @@ import { escapeHtml } from '../security.js';
 import { loadOrInitTrabalhadores, getAllRegistrosForMonthEquipe, resetAndRegenerateMockData } from '../mock-data.js';
 import { prepararDadosRirekisho } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
+import { obterStatusPlano } from '../licencas-service.js';
+import { openModalAtivacao } from '../modal-ativacao.js';
 
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -34,6 +36,9 @@ export async function renderGestorDashboard(app) {
   // Consolida métricas
   const totalTrabalhadores = trabalhadores.length;
   const trabalhadoresAtivos = trabalhadores.filter(t => t.ativo !== false).length;
+
+  // Consulta status do plano e cotas do gestor
+  const statusPlano = await obterStatusPlano(user, 'gestor', totalTrabalhadores);
 
   // Mapeia horas por trabalhador
   const horasPorTrabalhador = {};
@@ -96,15 +101,59 @@ export async function renderGestorDashboard(app) {
               <button type="button" class="btn btn-outline" id="btn-seed-mock-data" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #6366f1; color: #a5b4fc;" title="Gerar ou resetar 10 funcionários fictícios com 1 ano de horas (~250h/mês)">
                 <span>🧪 Gerar 10 Funcionários (~250h/mês)</span>
               </button>
-              <a href="#/gestor-trabalhadores?novo=1" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <button type="button" class="btn btn-primary" id="btn-dash-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem; ${statusPlano.atingiuLimite && !statusPlano.isPro ? 'background: #dc2626; border-color: #ef4444;' : ''}">
+                ${statusPlano.atingiuLimite && !statusPlano.isPro ? '🔒' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
                 <span>Cadastrar Trabalhador</span>
-              </a>
+              </button>
               <a href="#/registro-horas" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>Apontar Horas</span>
               </a>
             </div>
+          </div>
+
+          <!-- Card de Status do Plano e Chave de Liberação -->
+          <div class="card" style="margin-bottom: 1.5rem; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : (statusPlano.atingiuLimite ? '#ef4444' : '#334155')}; background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.08)' : 'rgba(30, 41, 59, 0.6)')}; padding: 1.15rem 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${statusPlano.isPro ? 'rgba(59, 130, 246, 0.2)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.2)')}; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                  ${statusPlano.isPro ? '👑' : (statusPlano.atingiuLimite ? '🔒' : '💼')}
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #f8fafc;">${escapeHtml(statusPlano.nomePlano)}</h3>
+                    <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
+                      ${statusPlano.isPro ? 'Acesso Completo Ativado' : `${statusPlano.totalCadastrados} / ${statusPlano.limite} cadastros utilizados`}
+                    </span>
+                  </div>
+                  <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+                    ${statusPlano.isPro
+                      ? `Chave exclusiva anti-fraude vinculada: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
+                      : (statusPlano.atingiuLimite
+                        ? `<span style="color: #fca5a5; font-weight: 600;">Limite gratuito de 5 cadastros atingido.</span> Desbloqueie cadastros ilimitados com sua chave única.`
+                        : `Plano básico gratuito com cota de até 5 cadastros (${statusPlano.restantes} restante${statusPlano.restantes === 1 ? '' : 's'}).`)}
+                  </p>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                ${statusPlano.isPro ? `
+                  <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.82rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <span>⚙️ Painel de Licenças</span>
+                  </a>
+                ` : `
+                  <button type="button" class="btn btn-primary" id="btn-ativar-plano-dash" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'};">
+                    <span>🔑 Inserir Chave de Liberação</span>
+                  </button>
+                `}
+              </div>
+            </div>
+
+            ${!statusPlano.isPro ? `
+              <div style="margin-top: 0.85rem; background: #020617; border-radius: 6px; height: 8px; overflow: hidden; border: 1px solid #1e293b;">
+                <div style="width: ${statusPlano.percentualUso}%; height: 100%; background: ${statusPlano.atingiuLimite ? '#ef4444' : (statusPlano.percentualUso > 60 ? '#f59e0b' : '#3b82f6')}; transition: width 0.3s ease;"></div>
+              </div>
+            ` : ''}
           </div>
 
           ${alertasVisto.length > 0 ? `
@@ -290,5 +339,25 @@ export async function renderGestorDashboard(app) {
       resetAndRegenerateMockData(user.id);
       renderGestorDashboard(app);
     }
+  });
+
+  // Botão Cadastrar Trabalhador no Header do Dashboard
+  document.getElementById('btn-dash-novo-trabalhador')?.addEventListener('click', () => {
+    if (!statusPlano.isPro && statusPlano.totalCadastrados >= statusPlano.limite) {
+      openModalAtivacao({
+        motivo: 'limite_atingido',
+        onSucesso: () => renderGestorDashboard(app)
+      });
+      return;
+    }
+    navigate('/gestor-trabalhadores?novo=1');
+  });
+
+  // Botão Ativar Chave no Card de Status do Plano
+  document.getElementById('btn-ativar-plano-dash')?.addEventListener('click', () => {
+    openModalAtivacao({
+      motivo: statusPlano.atingiuLimite ? 'limite_atingido' : 'manual',
+      onSucesso: () => renderGestorDashboard(app)
+    });
   });
 }

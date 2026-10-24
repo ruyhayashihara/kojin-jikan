@@ -8,14 +8,10 @@ import {
   getStoredTrabalhadores,
   setStoredTrabalhadores
 } from '../mock-data.js';
-import {
-  prepararDadosRirekisho,
-  traduzirCargo,
-  gerarMotivacaoPolida,
-  traduzirComGemini,
-  romanToKatakanaApprox
-} from '../rirekisho-translator.js';
+import { prepararDadosRirekisho, traduzirCargo, gerarMotivacaoPolida, traduzirComGemini, romanToKatakanaApprox } from '../rirekisho-translator.js';
 import { imprimirRirekisho } from '../rirekisho-pdf.js';
+import { obterStatusPlano } from '../licencas-service.js';
+import { openModalAtivacao } from '../modal-ativacao.js';
 
 // Lista das 47 províncias do Japão (都道府県)
 const PROVINCIAS_JAPAO = [
@@ -147,6 +143,9 @@ export async function renderGestorTrabalhadores(app) {
   // Carrega trabalhadores deste gestor (ou inicializa os 10 fictícios)
   let { trabalhadores } = await loadOrInitTrabalhadores(user.id, supabase);
 
+  // Obtém status da licença e cotas anti-fraude
+  const statusPlano = await obterStatusPlano(user, 'gestor', trabalhadores.length);
+
   // Parâmetros de rota (ex: #/gestor-trabalhadores?editar=UUID ou #/gestor-trabalhadores?novo=1)
   const hashParts = window.location.hash.split('?');
   const urlParams = new URLSearchParams(hashParts[1] || '');
@@ -163,7 +162,7 @@ export async function renderGestorTrabalhadores(app) {
           <!-- VISÃO 1: LISTAGEM DE TRABALHADORES         -->
           <!-- ========================================== -->
           <div id="view-lista-trabalhadores" style="${(editId || isNovoDirect) ? 'display: none;' : 'display: block;'}">
-            <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
               <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
                   <h1>Gestão de Trabalhadores</h1>
@@ -175,10 +174,44 @@ export async function renderGestorTrabalhadores(app) {
                 <button type="button" class="btn btn-outline" id="btn-seed-mock-trabalhadores" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: #6366f1; color: #a5b4fc;" title="Gerar ou resetar 10 funcionários fictícios com 1 ano de horas (~250h/mês)">
                   <span>🧪 Gerar 10 Funcionários Demo</span>
                 </button>
-                <button type="button" class="btn btn-primary" id="btn-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <button type="button" class="btn btn-primary" id="btn-novo-trabalhador" style="display: inline-flex; align-items: center; gap: 0.4rem; ${statusPlano.atingiuLimite && !statusPlano.isPro ? 'border-color: #ef4444; background: #dc2626;' : ''}">
+                  ${statusPlano.atingiuLimite && !statusPlano.isPro ? '🔒' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
                   <span>Cadastrar Novo Trabalhador (履歴書)</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- Banner de Controle de Cotas e Licença -->
+            <div id="quota-banner-gestor" style="background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)' : (statusPlano.atingiuLimite ? 'rgba(239, 68, 68, 0.12)' : 'rgba(59, 130, 246, 0.08)')}; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : (statusPlano.atingiuLimite ? '#ef4444' : '#334155')}; border-radius: 10px; padding: 0.9rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.5rem;">${statusPlano.isPro ? '👑' : (statusPlano.atingiuLimite ? '🔒' : '📊')}</span>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <strong style="color: #f8fafc; font-size: 0.92rem;">${escapeHtml(statusPlano.nomePlano)}</strong>
+                    <span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; ${statusPlano.isPro ? 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (statusPlano.atingiuLimite ? 'background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4);' : 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);')}">
+                      ${statusPlano.isPro ? 'Cadastros Ilimitados Liberados' : `${statusPlano.totalCadastrados} de ${statusPlano.limite} cadastros utilizados`}
+                    </span>
+                  </div>
+                  <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 3px;">
+                    ${statusPlano.isPro
+                      ? `Chave ativa: <code style="color: #38bdf8; font-weight: 700; background: #020617; padding: 2px 6px; border-radius: 4px;">${escapeHtml(statusPlano.chaveCodigo || 'PRO-ILIMITADO')}</code> (Uso Único Anti-Fraude Vinculado)`
+                      : (statusPlano.atingiuLimite
+                        ? `<span style="color: #fca5a5; font-weight: 600;">Limite de 5 trabalhadores atingido!</span> Para cadastrar mais trabalhadores, ative sua chave de liberação.`
+                        : `Você tem <strong>${statusPlano.restantes}</strong> cadastro(s) livre(s) restante(s) na sua conta de gestor.`)}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                ${statusPlano.isPro ? `
+                  <a href="#/admin-licencas" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <span>⚙️ Gerenciar Licenças</span>
+                  </a>
+                ` : `
+                  <button type="button" class="btn btn-primary" id="btn-ativar-chave-banner" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; background: ${statusPlano.atingiuLimite ? '#dc2626' : '#2563eb'}; border-color: ${statusPlano.atingiuLimite ? '#ef4444' : '#3b82f6'}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+                    <span>🔑 Inserir Chave de Liberação</span>
+                  </button>
+                `}
               </div>
             </div>
 
@@ -1011,7 +1044,26 @@ export async function renderGestorTrabalhadores(app) {
   }
 
   // Eventos de abertura/fechamento
-  document.getElementById('btn-novo-trabalhador')?.addEventListener('click', () => openFormView(null));
+  document.getElementById('btn-novo-trabalhador')?.addEventListener('click', () => {
+    // TRAVA ANTI-FRAUDE: Se atingiu a cota do plano gratuito, bloqueia abertura e exige chave
+    if (!statusPlano.isPro && statusPlano.totalCadastrados >= statusPlano.limite) {
+      openModalAtivacao({
+        motivo: 'limite_atingido',
+        onSucesso: () => renderGestorTrabalhadores(app)
+      });
+      return;
+    }
+    openFormView(null);
+  });
+
+  // Botão de ativar chave no banner
+  document.getElementById('btn-ativar-chave-banner')?.addEventListener('click', () => {
+    openModalAtivacao({
+      motivo: statusPlano.atingiuLimite ? 'limite_atingido' : 'manual',
+      onSucesso: () => renderGestorTrabalhadores(app)
+    });
+  });
+
   document.getElementById('btn-voltar-lista')?.addEventListener('click', closeFormView);
   document.querySelectorAll('.btn-cancel-action').forEach(btn => {
     btn.addEventListener('click', closeFormView);
@@ -1416,6 +1468,18 @@ export async function renderGestorTrabalhadores(app) {
     formSuccess.style.display = 'none';
 
     const id = document.getElementById('trab-id').value;
+
+    // TRAVA ANTI-FRAUDE: Bloqueia novo cadastro no plano gratuito se atingiu a cota de 5 trabalhadores
+    if (!id && !statusPlano.isPro && trabalhadores.length >= statusPlano.limite) {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvar Ficha Cadastral'; }
+      if (saveBtnTop) { saveBtnTop.disabled = false; saveBtnTop.textContent = 'Salvar Ficha Cadastral'; }
+      openModalAtivacao({
+        motivo: 'limite_atingido',
+        onSucesso: () => renderGestorTrabalhadores(app)
+      });
+      return;
+    }
+
     const tipoCalculo = document.getElementById('trab-tipo-calculo').value;
     const valorBase = parseFloat(document.getElementById('trab-valor-base').value) || 0;
 
@@ -1564,6 +1628,13 @@ export async function renderGestorTrabalhadores(app) {
       openFormView(worker);
     }
   } else if (isNovoDirect) {
-    openFormView(null);
+    if (!statusPlano.isPro && statusPlano.totalCadastrados >= statusPlano.limite) {
+      openModalAtivacao({
+        motivo: 'limite_atingido',
+        onSucesso: () => renderGestorTrabalhadores(app)
+      });
+    } else {
+      openFormView(null);
+    }
   }
 }

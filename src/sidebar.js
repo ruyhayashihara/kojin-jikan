@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
 import { exportarMesPDF } from './pdf-export.js';
+import { openModalAtivacao } from './modal-ativacao.js';
 
 const GESTOR_NAV_ITEMS = [
   {
@@ -55,6 +56,15 @@ const NAV_ITEMS = [
 ];
 
 const SECONDARY_ITEMS = [
+  {
+    id: 'ativar-chave', label: 'Ativar Chave / Licença', href: '#ativar-chave',
+    isAction: true,
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-1.5-1.5L5 9l-3 3 7 7 3-3-1.5-1.5L12 13l1.5 1.5L15 13l1.5 1.5L18 13l3.5-3.5a5 5 0 0 0-7-7z"/><circle cx="15.5" cy="8.5" r="1.5"/></svg>'
+  },
+  {
+    id: 'admin-licencas', label: 'Gestão de Licenças (Admin)', href: '#/admin-licencas',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+  },
   {
     id: 'configuracoes', label: 'Configurações', href: '#/configuracoes',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
@@ -281,6 +291,18 @@ export function bindSidebarEvents() {
     item.addEventListener('click', () => {
       document.getElementById('sidebar')?.classList.remove('sidebar-mobile-open');
       document.getElementById('sidebar-overlay')?.classList.remove('sidebar-overlay-visible');
+    });
+  });
+
+  // Modal de Ativação de Chave / Licença
+  document.getElementById('sidebar-action-ativar-chave')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('sidebar')?.classList.remove('sidebar-mobile-open');
+    document.getElementById('sidebar-overlay')?.classList.remove('sidebar-overlay-visible');
+    openModalAtivacao({
+      onSucesso: () => {
+        window.location.reload();
+      }
     });
   });
 

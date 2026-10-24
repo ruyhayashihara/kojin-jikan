@@ -1,6 +1,9 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 import { renderSidebar, bindSidebarEvents } from '../sidebar.js';
+import { escapeHtml } from '../security.js';
+import { obterStatusPlano } from '../licencas-service.js';
+import { openModalAtivacao } from '../modal-ativacao.js';
 
 const MESES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -102,6 +105,9 @@ export async function renderDashboard(app) {
   const annualDescontos = Object.values(monthData).reduce((s, d) => s + d.total_descontos, 0);
   const annualLiquido = Object.values(monthData).reduce((s, d) => s + d.total_liquido, 0);
 
+  // Consulta status do plano do usuário individual
+  const statusPlano = await obterStatusPlano(user, 'individual', 1);
+
   app.innerHTML = `
     ${renderSidebar('dashboard')}
     <div class="app-content-wrapper">
@@ -115,9 +121,45 @@ export async function renderDashboard(app) {
           </div>
           ` : ''}
 
-          <div class="page-header">
-            <h1>Dashboard</h1>
-            <p>${MESES_NOME[currentMonth - 1]} ${currentYear} — ダッシュボード</p>
+          <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h1>Dashboard</h1>
+              <p>${MESES_NOME[currentMonth - 1]} ${currentYear} — ダッシュボード</p>
+            </div>
+            ${!statusPlano.isPro ? `
+              <button type="button" class="btn btn-outline" id="btn-ind-ativar-chave" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; border-color: #3b82f6; color: #93c5fd; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <span>🔑 Ativar Chave PRO</span>
+              </button>
+            ` : `
+              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <span>👑</span> Individual PRO Ativado
+              </span>
+            `}
+          </div>
+
+          <!-- Banner de Status do Perfil Individual -->
+          <div class="card" style="margin-bottom: 1.5rem; padding: 0.85rem 1.25rem; border: 1px solid ${statusPlano.isPro ? '#3b82f6' : '#334155'}; background: ${statusPlano.isPro ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)' : 'rgba(30, 41, 59, 0.4)'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <span style="font-size: 1.3rem;">${statusPlano.isPro ? '👑' : '👤'}</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <strong style="color: #f8fafc; font-size: 0.9rem;">${escapeHtml(statusPlano.nomePlano)}</strong>
+                  <span class="badge" style="background: ${statusPlano.isPro ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(59, 130, 246, 0.2); color: #60a5fa;'}; font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;">
+                    ${statusPlano.isPro ? 'Recursos PRO Liberados' : '1 Cadastro Individual (Autônomo)'}
+                  </span>
+                </div>
+                <span style="font-size: 0.75rem; color: #94a3b8;">
+                  ${statusPlano.isPro
+                    ? `Chave exclusiva vinculada: <code style="color: #38bdf8;">${escapeHtml(statusPlano.chaveCodigo || 'PRO')}</code>`
+                    : 'Acesso às suas próprias horas trabalhadas e recibos individuais liberado.'}
+                </span>
+              </div>
+            </div>
+            ${!statusPlano.isPro ? `
+              <button type="button" class="btn btn-outline" id="btn-ind-ativar-chave-banner" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; border-color: #3b82f6; color: #93c5fd;">
+                Inserir Chave
+              </button>
+            ` : ''}
           </div>
 
           <div class="bento-grid">
@@ -236,4 +278,13 @@ export async function renderDashboard(app) {
       navigate('/registro-horas');
     });
   });
+
+  // Evento: Ativar Chave PRO no Dashboard Individual
+  const handlerAtivar = () => {
+    openModalAtivacao({
+      onSucesso: () => renderDashboard(app)
+    });
+  };
+  document.getElementById('btn-ind-ativar-chave')?.addEventListener('click', handlerAtivar);
+  document.getElementById('btn-ind-ativar-chave-banner')?.addEventListener('click', handlerAtivar);
 }

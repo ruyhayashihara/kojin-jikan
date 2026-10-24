@@ -4336,3 +4336,20 @@ a:hover {
     height: 40px;
   }
 }
+
+/* --- Licenças e Painel Admin Anti-Fraude --- */
+.btn-filter-status.active-filter {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+  font-weight: 600;
+}
+
+.btn-copiar-linha {
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.btn-copiar-linha:hover {
+  transform: scale(1.2);
+  color: #38bdf8 !important;
+}
