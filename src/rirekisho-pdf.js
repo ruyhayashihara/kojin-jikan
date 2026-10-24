@@ -570,6 +570,13 @@ export function gerarHTMLRirekisho(dados) {
 
   </div>
 
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        try { window.print(); } catch (e) { }
+      }, 350);
+    });
+  </script>
 </body>
 </html>
   `.trim();
@@ -578,13 +585,20 @@ export function gerarHTMLRirekisho(dados) {
 /**
  * Abre a janela de visualização e impressão direta do Currículo Japonês
  */
-export function imprimirRirekisho(dados) {
+export function imprimirRirekisho(dados, targetWin = null) {
   const html = gerarHTMLRirekisho(dados);
-  const win = window.open('', '_blank');
+  let win = targetWin;
+  if (!win || win.closed) {
+    try {
+      win = window.open('', '_blank');
+    } catch (e) { }
+  }
+
   if (!win) {
-    alert('Por favor, permita pop-ups para gerar e imprimir o Currículo Japonês (履歴書 PDF).');
+    alert('O navegador bloqueou a abertura da janela de impressão. Por favor, permita pop-ups para este site.');
     return;
   }
+
   win.document.open();
   win.document.write(html);
   win.document.close();

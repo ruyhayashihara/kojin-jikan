@@ -1213,30 +1213,34 @@ export async function renderGestorTrabalhadores(app) {
   let activeRirekishoWorker = null;
 
   function getWorkerFromForm() {
+    const id = document.getElementById('trab-id')?.value || '';
+    const existing = id ? trabalhadores.find(t => t.id === id) : null;
+
     return {
-      id: document.getElementById('trab-id').value,
-      codigo_trabalhador: document.getElementById('trab-codigo').value,
-      nome_alfabeto: document.getElementById('trab-nome-alfabeto').value,
-      nome_kanji: document.getElementById('trab-nome-kanji').value,
-      nome_kana: document.getElementById('trab-nome-kana').value,
-      data_nascimento: document.getElementById('trab-nascimento').value,
-      genero: document.getElementById('trab-genero').value,
-      nacionalidade: document.getElementById('trab-nacionalidade').value,
-      cep: document.getElementById('trab-cep').value,
-      provincia: document.getElementById('trab-provincia').value,
-      cidade_bairro: document.getElementById('trab-cidade').value,
-      endereco_numero: document.getElementById('trab-endereco').value,
-      telefone: document.getElementById('trab-telefone').value,
-      email: document.getElementById('trab-email').value,
-      tipo_visto: document.getElementById('trab-tipo-visto').value,
-      tipo_contrato: document.getElementById('trab-tipo-contrato').value,
-      cargo_funcao: document.getElementById('trab-cargo').value,
-      data_admissao: document.getElementById('trab-admissao').value,
-      contato_emergencia_nome: document.getElementById('trab-emergencia-nome').value,
-      contato_emergencia_parentesco: document.getElementById('trab-emergencia-parentesco').value,
-      contato_emergencia_telefone: document.getElementById('trab-emergencia-tel').value,
-      observacoes: document.getElementById('trab-observacoes').value,
-      qualificacoes_licencas: [...trabalhadorLicencas]
+      id: id,
+      foto_url: existing?.foto_url || '',
+      codigo_trabalhador: document.getElementById('trab-codigo')?.value?.trim() || 'TR-001',
+      nome_alfabeto: document.getElementById('trab-nome-alfabeto')?.value?.trim() || '',
+      nome_kanji: document.getElementById('trab-nome-kanji')?.value?.trim() || '',
+      nome_kana: document.getElementById('trab-nome-kana')?.value?.trim() || '',
+      data_nascimento: document.getElementById('trab-nascimento')?.value || '',
+      genero: document.getElementById('trab-genero')?.value || 'Masculino',
+      nacionalidade: document.getElementById('trab-nacionalidade')?.value || 'Brasil',
+      cep: document.getElementById('trab-cep')?.value?.trim() || '',
+      provincia: document.getElementById('trab-provincia')?.value || '',
+      cidade_bairro: document.getElementById('trab-cidade')?.value?.trim() || '',
+      endereco_numero: document.getElementById('trab-endereco')?.value?.trim() || '',
+      telefone: document.getElementById('trab-telefone')?.value?.trim() || '',
+      email: document.getElementById('trab-email')?.value?.trim() || '',
+      tipo_visto: document.getElementById('trab-visto')?.value || '',
+      tipo_contrato: document.getElementById('trab-contrato')?.value || '業務委託',
+      cargo_funcao: document.getElementById('trab-cargo')?.value?.trim() || '',
+      data_admissao: document.getElementById('trab-admissao')?.value || '',
+      contato_emergencia_nome: document.getElementById('trab-emergencia-nome')?.value?.trim() || '',
+      contato_emergencia_parentesco: document.getElementById('trab-emergencia-parentesco')?.value?.trim() || '',
+      contato_emergencia_telefone: document.getElementById('trab-emergencia-telefone')?.value?.trim() || '',
+      observacoes: document.getElementById('trab-observacoes')?.value?.trim() || '',
+      qualificacoes_licencas: Array.isArray(trabalhadorLicencas) ? [...trabalhadorLicencas] : []
     };
   }
 
@@ -1342,24 +1346,34 @@ export async function renderGestorTrabalhadores(app) {
   document.getElementById('btn-gerar-pdf-rirekisho')?.addEventListener('click', () => {
     if (!activeRirekishoWorker) return;
 
+    // Abre janela imediatamente no evento de clique para prevenir bloqueador de popups do navegador
+    let printWin = null;
+    try {
+      printWin = window.open('about:blank', '_blank');
+      if (printWin) {
+        printWin.document.write('<!DOCTYPE html><html><head><title>Carregando 履歴書...</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;"><div style="text-align:center;"><div style="font-size:24px;margin-bottom:12px;">⏳</div><div style="font-size:16px;font-weight:600;">Gerando Currículo Japonês (履歴書 JIS)...</div></div></body></html>');
+        printWin.document.close();
+      }
+    } catch (e) { }
+
     const options = {
-      customMotivacao: modalRirMotivacao.value.trim(),
-      customDesejos: modalRirDesejos.value.trim(),
-      tempoComutacaoHoras: modalRirComutacaoH.value,
-      tempoComutacaoMin: modalRirComutacaoM.value,
-      dependentes: modalRirDependentes.value,
-      temConjuge: modalRirConjuge.value === 'sim'
+      customMotivacao: modalRirMotivacao?.value?.trim() || '',
+      customDesejos: modalRirDesejos?.value?.trim() || '',
+      tempoComutacaoHoras: modalRirComutacaoH?.value || '0',
+      tempoComutacaoMin: modalRirComutacaoM?.value || '45',
+      dependentes: modalRirDependentes?.value || '0',
+      temConjuge: modalRirConjuge?.value === 'sim'
     };
 
     const workerParaExportar = {
       ...activeRirekishoWorker,
-      nome_kanji: modalRirNome.value.trim() || activeRirekishoWorker.nome_kanji,
-      nome_kana: modalRirFurigana.value.trim() || activeRirekishoWorker.nome_kana,
-      cargo_funcao: modalRirCargo.value.trim() || activeRirekishoWorker.cargo_funcao
+      nome_kanji: modalRirNome?.value?.trim() || activeRirekishoWorker.nome_kanji,
+      nome_kana: modalRirFurigana?.value?.trim() || activeRirekishoWorker.nome_kana,
+      cargo_funcao: modalRirCargo?.value?.trim() || activeRirekishoWorker.cargo_funcao
     };
 
     const dadosFinal = prepararDadosRirekisho(workerParaExportar, options);
-    imprimirRirekisho(dadosFinal);
+    imprimirRirekisho(dadosFinal, printWin);
     fecharModalRirekisho();
   });
 

@@ -254,11 +254,22 @@ export async function renderGestorDashboard(app) {
   document.querySelectorAll('.btn-quick-rirekisho').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      let printWin = null;
+      try {
+        printWin = window.open('about:blank', '_blank');
+        if (printWin) {
+          printWin.document.write('<!DOCTYPE html><html><head><title>Carregando 履歴書...</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;"><div style="text-align:center;"><div style="font-size:24px;margin-bottom:12px;">⏳</div><div style="font-size:16px;font-weight:600;">Gerando Currículo Japonês (履歴書 JIS)...</div></div></body></html>');
+          printWin.document.close();
+        }
+      } catch (err) { }
+
       const id = btn.dataset.id;
       const worker = trabalhadores.find(t => t.id === id);
       if (worker) {
         const dados = prepararDadosRirekisho(worker);
-        imprimirRirekisho(dados);
+        imprimirRirekisho(dados, printWin);
+      } else if (printWin) {
+        printWin.close();
       }
     });
   });
