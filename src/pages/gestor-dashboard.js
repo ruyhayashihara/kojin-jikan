@@ -205,7 +205,7 @@ export async function renderGestorDashboard(app) {
                     ${trabalhadores.slice(0, 10).map(t => {
                       const h = horasPorTrabalhador[t.id] || 0;
                       return `
-                        <tr>
+                        <tr class="worker-row-clickable" data-worker-id="${t.id}" title="Clique para abrir a Ficha Cadastral de ${escapeHtml(t.nome_alfabeto)}">
                           <td><span class="badge-worker-id">${escapeHtml(t.codigo_trabalhador)}</span></td>
                           <td>
                             <strong>${escapeHtml(t.nome_alfabeto)}</strong>
@@ -242,6 +242,17 @@ export async function renderGestorDashboard(app) {
   `;
 
   bindSidebarEvents();
+
+  // Clique em qualquer lugar da linha abre a ficha cadastral do trabalhador
+  document.querySelectorAll('.worker-row-clickable').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const workerId = row.dataset.workerId;
+      if (workerId) {
+        navigate(`/gestor-trabalhadores?editar=${workerId}`);
+      }
+    });
+  });
 
   document.getElementById('btn-seed-mock-data')?.addEventListener('click', () => {
     if (confirm('Deseja gerar os 10 funcionários fictícios no Japão com 1 ano completo de horas trabalhadas (~250h/mês)?')) {

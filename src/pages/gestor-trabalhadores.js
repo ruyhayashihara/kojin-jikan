@@ -637,7 +637,7 @@ export async function renderGestorTrabalhadores(app) {
       }
 
       return `
-        <tr data-worker-id="${t.id}">
+        <tr class="worker-row-clickable" data-worker-id="${t.id}" title="Clique para abrir a Ficha Cadastral de ${escapeHtml(t.nome_alfabeto)}">
           <td><span class="badge-worker-id">${escapeHtml(t.codigo_trabalhador)}</span></td>
           <td>
             <div style="font-weight: 600; color: #f8fafc;">${escapeHtml(t.nome_alfabeto)}</div>
@@ -1042,21 +1042,24 @@ export async function renderGestorTrabalhadores(app) {
     }
   });
 
-  // Eventos de clique na tabela (delegation)
+  // Eventos de clique na tabela (delegation - toda a linha é clicável)
   document.getElementById('lista-trabalhadores-body')?.addEventListener('click', (e) => {
-    const btnEdit = e.target.closest('.btn-edit-worker');
-    if (btnEdit) {
-      const id = btnEdit.dataset.id;
-      const worker = trabalhadores.find(t => t.id === id);
-      if (worker) openFormView(worker);
-      return;
-    }
-
+    // Se clicou especificamente no botão de Horas, vai para apontamento de horas
     const btnTimesheet = e.target.closest('.btn-timesheet-worker');
     if (btnTimesheet) {
+      e.stopPropagation();
       const id = btnTimesheet.dataset.id;
       sessionStorage.setItem('keiro_gestor_selected_worker', id);
       navigate('/registro-horas');
+      return;
+    }
+
+    // Clique em qualquer outro lugar da linha (ou no botão Editar) abre a Ficha Cadastral
+    const row = e.target.closest('tr[data-worker-id]');
+    if (row) {
+      const id = row.dataset.workerId;
+      const worker = trabalhadores.find(t => t.id === id);
+      if (worker) openFormView(worker);
     }
   });
 

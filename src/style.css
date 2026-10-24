@@ -1723,6 +1723,19 @@ a:hover {
   font-size: 0.78rem;
 }
 
+.worker-row-clickable {
+  cursor: pointer !important;
+  transition: background-color 0.15s ease;
+}
+
+.worker-row-clickable:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+
+.worker-row-clickable:active {
+  background: rgba(56, 189, 248, 0.14) !important;
+}
+
 
 .mobile-timesheet-hint {
   display: none;
