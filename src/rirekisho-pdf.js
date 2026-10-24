@@ -363,9 +363,9 @@ export function gerarHTMLRirekisho(dados) {
       <table class="jis-table" style="margin-bottom: -1.5px;">
         <colgroup>
           <col style="width: 18mm;">
-          <col style="width: 58mm;">
-          <col style="width: 64mm;">
-          <col style="width: 14mm;">
+          <col style="width: 47mm;">
+          <col style="width: 47mm;">
+          <col style="width: 42mm;">
           <col style="width: 28mm;">
         </colgroup>
         <tbody>
@@ -420,9 +420,9 @@ export function gerarHTMLRirekisho(dados) {
                 ${escapeHtml(dados.enderecoLinha1)} ${escapeHtml(dados.enderecoLinha2)}
               </div>
             </td>
-            <td style="vertical-align: top; padding-top: 3px; font-size: 7pt; text-align: left;">
+            <td style="vertical-align: top; padding-top: 3px; padding-left: 6px; font-size: 7pt; text-align: left;">
               <div class="cell-label">電話</div>
-              <div style="font-size: 8pt; font-weight: 600; margin-top: 2px;">
+              <div style="font-size: 8.5pt; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${escapeHtml(dados.telefone || '—')}
               </div>
             </td>
@@ -438,9 +438,9 @@ export function gerarHTMLRirekisho(dados) {
                 ${dados.contatoEmergenciaNome ? ` ｜ 緊急: ${escapeHtml(dados.contatoEmergenciaNome)} (${escapeHtml(dados.contatoEmergenciaParentesco || '家族')})` : ''}
               </div>
             </td>
-            <td colspan="2" style="vertical-align: top; padding-top: 3px; font-size: 7pt;">
+            <td colspan="2" style="vertical-align: top; padding-top: 3px; padding-left: 6px; font-size: 7pt;">
               <div class="cell-label">電話</div>
-              <div style="font-size: 8pt; font-weight: 600; margin-top: 2px;">
+              <div style="font-size: 8.5pt; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${escapeHtml(dados.contatoEmergenciaTel || dados.telefone || '—')}
               </div>
             </td>
