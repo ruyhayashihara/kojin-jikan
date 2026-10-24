@@ -5,6 +5,11 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Garante que as colunas de tipo_perfil existam em perfil_usuario
+ALTER TABLE public.perfil_usuario ADD COLUMN IF NOT EXISTS tipo_perfil TEXT DEFAULT 'individual';
+ALTER TABLE public.perfil_usuario ADD COLUMN IF NOT EXISTS nome_empresa TEXT;
+ALTER TABLE public.perfil_usuario ADD COLUMN IF NOT EXISTS telefone_corporativo TEXT;
+
 DO $$
 DECLARE
   v_user_id UUID;
