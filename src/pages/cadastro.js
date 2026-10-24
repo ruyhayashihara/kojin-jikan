@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
+import { clearAllLocalUserData } from '../mock-data.js';
 
 export async function renderCadastro(app) {
   const hash = window.location.hash;
@@ -139,6 +140,12 @@ export async function renderCadastro(app) {
     btn.disabled = true;
     btn.textContent = 'Criando conta...';
 
+    // Desconecta qualquer sessão anterior existente para não misturar credenciais
+    try {
+      await supabase.auth.signOut();
+    } catch (e) { }
+    clearAllLocalUserData();
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -172,14 +179,8 @@ export async function renderCadastro(app) {
         }
       }
 
-      // Limpa dados residuais de sessões ou contas anteriores do navegador
-      sessionStorage.clear();
-      try {
-        localStorage.removeItem('keiro_mock_trabalhadores');
-        localStorage.removeItem('keiro_mock_registros');
-        localStorage.removeItem('keiro_gestor_selected_worker');
-      } catch (e) { }
-
+      // Limpa dados residuais e inicia sessão limpa
+      clearAllLocalUserData();
       sessionStorage.setItem('keiro_active_role', currentRole);
 
       if (data?.session) {
@@ -193,7 +194,20 @@ export async function renderCadastro(app) {
         setTimeout(() => navigate(currentRole === 'gestor' ? '/login?role=gestor' : '/login?role=individual'), 1500);
       }
     } catch (err) {
-      errorDiv.textContent = err.message || 'Erro ao criar conta.';
+      let msg = err.message || 'Erro ao criar conta.';
+      const lower = (msg || '').toLowerCase();
+
+      if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit') || err.status === 429) {
+        msg = 'Limite de envio de e-mails excedido. Por favor, aguarde cerca de 1 hora antes de tentar novamente com este e-mail, ou cadastre-se utilizando outro endereço de e-mail.';
+      } else if (lower.includes('already registered') || lower.includes('user already exists')) {
+        msg = 'Este e-mail já está cadastrado no sistema. Por favor, acesse a tela de login.';
+      } else if (lower.includes('password should be at least')) {
+        msg = 'A senha informada deve possuir no mínimo 6 caracteres.';
+      } else if (lower.includes('invalid email')) {
+        msg = 'Por favor, informe um endereço de e-mail válido.';
+      }
+
+      errorDiv.textContent = msg;
       errorDiv.style.display = 'block';
       btn.disabled = false;
       btn.textContent = currentRole === 'gestor' ? 'Criar Conta de Gestor' : 'Criar Conta Individual';

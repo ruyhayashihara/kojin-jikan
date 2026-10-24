@@ -577,10 +577,35 @@ export function getRecordStorageKey(userId) {
   return userId ? `keiro_registros_${userId}` : 'keiro_registros_guest';
 }
 
-// Remove chaves legadas globais para evitar contaminação entre contas
+/**
+ * Limpa completamente dados locais de sessões anteriores mantendo apenas preferências de tema
+ */
+export function clearAllLocalUserData() {
+  try {
+    const theme = localStorage.getItem('keiro_theme');
+    const sidebar = localStorage.getItem('keiro_sidebar');
+    sessionStorage.clear();
+    localStorage.clear();
+    if (theme) localStorage.setItem('keiro_theme', theme);
+    if (sidebar) localStorage.setItem('keiro_sidebar', sidebar);
+  } catch (e) { }
+}
+
+// Expurgar ativamente quaisquer dados fictícios (Carlos Silva, mock-worker, etc) do navegador
 try {
   localStorage.removeItem('keiro_mock_trabalhadores');
   localStorage.removeItem('keiro_mock_registros');
+  localStorage.removeItem('keiro_gestor_selected_worker');
+
+  // Varre chaves do localStorage para eliminar resíduos fictícios
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('keiro_trabalhadores_') || key.startsWith('keiro_registros_') || key.startsWith('keiro_mock_')) {
+      const val = localStorage.getItem(key);
+      if (val && (val.includes('Carlos Silva') || val.includes('mock-worker-') || val.includes('TR-001') || val.includes('Mariana Tanaka'))) {
+        localStorage.removeItem(key);
+      }
+    }
+  });
 } catch (e) { }
 
 /**
@@ -590,7 +615,17 @@ export function getStoredTrabalhadores(userId) {
   try {
     const key = getWorkerStorageKey(userId);
     const raw = localStorage.getItem(key);
-    if (raw !== null && raw !== '') return JSON.parse(raw);
+    if (raw !== null && raw !== '') {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        // Elimina qualquer trabalhador fictício que possa ter sido armazenado anteriormente
+        const cleaned = parsed.filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem(key, JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
+    }
   } catch (e) { }
   return null;
 }
@@ -601,7 +636,8 @@ export function getStoredTrabalhadores(userId) {
 export function setStoredTrabalhadores(list, userId) {
   try {
     const key = getWorkerStorageKey(userId);
-    localStorage.setItem(key, JSON.stringify(list || []));
+    const cleaned = (list || []).filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
+    localStorage.setItem(key, JSON.stringify(cleaned));
   } catch (e) { }
 }
 
@@ -612,7 +648,18 @@ export function getStoredRegistros(userId) {
   try {
     const key = getRecordStorageKey(userId);
     const raw = localStorage.getItem(key);
-    if (raw !== null && raw !== '') return JSON.parse(raw);
+    if (raw !== null && raw !== '') {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const cleaned = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          if (v && v.trabalhador_id && !v.trabalhador_id.startsWith('mock-worker-')) {
+            cleaned[k] = v;
+          }
+        });
+        return cleaned;
+      }
+    }
   } catch (e) { }
   return null;
 }
@@ -623,7 +670,15 @@ export function getStoredRegistros(userId) {
 export function setStoredRegistros(records, userId) {
   try {
     const key = getRecordStorageKey(userId);
-    localStorage.setItem(key, JSON.stringify(records || {}));
+    const cleaned = {};
+    if (records && typeof records === 'object') {
+      Object.entries(records).forEach(([k, v]) => {
+        if (v && v.trabalhador_id && !v.trabalhador_id.startsWith('mock-worker-')) {
+          cleaned[k] = v;
+        }
+      });
+    }
+    localStorage.setItem(key, JSON.stringify(cleaned));
   } catch (e) { }
 }
 
@@ -645,10 +700,11 @@ export async function loadOrInitTrabalhadores(userId, supabase) {
         .eq('gestor_id', userId)
         .order('codigo_trabalhador', { ascending: true });
 
-      // Se a consulta teve sucesso, salva no cache exclusivo deste usuário e retorna os registros
+      // Se a consulta teve sucesso, filtra e salva no cache exclusivo deste usuário
       if (!error && Array.isArray(data)) {
-        setStoredTrabalhadores(data, userId);
-        return { trabalhadores: data, source: 'supabase' };
+        const cleaned = data.filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
+        setStoredTrabalhadores(cleaned, userId);
+        return { trabalhadores: cleaned, source: 'supabase' };
       }
     }
   } catch (e) { }

@@ -3,6 +3,7 @@ import { navigate } from './router.js';
 import { exportarMesPDF } from './pdf-export.js';
 import { openModalAtivacao } from './modal-ativacao.js';
 import { isUsuarioAdmin } from './licencas-service.js';
+import { clearAllLocalUserData } from './mock-data.js';
 
 const GESTOR_NAV_ITEMS = [
   {
@@ -296,12 +297,7 @@ export function bindSidebarEvents() {
 
   // Logout
   document.getElementById('sidebar-logout')?.addEventListener('click', async () => {
-    sessionStorage.clear();
-    try {
-      localStorage.removeItem('keiro_mock_trabalhadores');
-      localStorage.removeItem('keiro_mock_registros');
-      localStorage.removeItem('keiro_gestor_selected_worker');
-    } catch (e) { }
+    clearAllLocalUserData();
     await supabase.auth.signOut();
     navigate('/login');
   });

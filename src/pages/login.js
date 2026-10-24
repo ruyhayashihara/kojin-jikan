@@ -183,7 +183,18 @@ export async function renderLogin(app) {
       }, 400);
 
     } catch (err) {
-      errorDiv.textContent = err.message || 'Erro ao fazer login. Verifique seu e-mail e senha.';
+      let msg = err.message || 'Erro ao fazer login. Verifique seu e-mail e senha.';
+      const lower = (msg || '').toLowerCase();
+
+      if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit') || err.status === 429) {
+        msg = 'Limite de tentativas excedido. Por favor, aguarde cerca de 1 hora antes de tentar novamente, ou tente mais tarde.';
+      } else if (lower.includes('invalid login credentials') || lower.includes('invalid_grant')) {
+        msg = 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.';
+      } else if (lower.includes('email not confirmed')) {
+        msg = 'E-mail ainda não confirmado. Verifique sua caixa de entrada para ativar a conta.';
+      }
+
+      errorDiv.textContent = msg;
       errorDiv.style.display = 'block';
       btn.disabled = false;
       btn.textContent = currentRole === 'gestor' ? 'Entrar no Painel do Gestor' : 'Entrar como Individual';
