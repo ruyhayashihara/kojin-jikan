@@ -435,13 +435,12 @@ export function gerarHTMLRirekisho(dados) {
               </div>
               <div style="font-size: 8pt; margin-top: 2px;">
                 ${dados.email ? `E-mail: ${escapeHtml(dados.email)}` : '同上'}
-                ${dados.contatoEmergenciaNome ? ` ｜ 緊急: ${escapeHtml(dados.contatoEmergenciaNome)} (${escapeHtml(dados.contatoEmergenciaParentesco || '家族')})` : ''}
               </div>
             </td>
             <td colspan="2" style="vertical-align: top; padding-top: 3px; padding-left: 6px; font-size: 7pt;">
               <div class="cell-label">電話</div>
               <div style="font-size: 8.5pt; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${escapeHtml(dados.contatoEmergenciaTel || dados.telefone || '—')}
+                ${escapeHtml(dados.telefone || '—')}
               </div>
             </td>
           </tr>
