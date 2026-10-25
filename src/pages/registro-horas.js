@@ -10,6 +10,29 @@ const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const DIAS_SEMANA_JA = ['日', '月', '火', '水', '木', '金', '土'];
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+const STORAGE_KEY_HORARIO_PADRAO = 'keiro_horario_padrao';
+
+export function getHorarioPadrao() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_HORARIO_PADRAO);
+    if (raw) {
+      const p = JSON.parse(raw);
+      return {
+        entrada: p.entrada || '08:00',
+        saida: p.saida || '17:00',
+        intervalo: p.intervalo !== undefined ? parseInt(p.intervalo, 10) : 60
+      };
+    }
+  } catch (e) { }
+  return { entrada: '08:00', saida: '17:00', intervalo: 60 };
+}
+
+export function setHorarioPadrao(padrao) {
+  try {
+    localStorage.setItem(STORAGE_KEY_HORARIO_PADRAO, JSON.stringify(padrao));
+  } catch (e) { }
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
@@ -682,6 +705,8 @@ export async function renderRegistroHoras(app) {
     await Promise.all([loadRegistros(), loadDescontos()]);
     await loadResumo();
 
+    const horarioPadrao = getHorarioPadrao();
+
     const yearOptions = [];
     for (let y = selectedYear - 3; y <= selectedYear + 1; y++) {
       yearOptions.push(`<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`);
@@ -778,9 +803,14 @@ export async function renderRegistroHoras(app) {
             <!-- Modal de Lançamento de Horas -->
             <div id="modal-horas" class="modal-overlay" style="display: none;">
               <div class="modal-content-card">
-                <div class="modal-header-row">
-                  <h2 id="modal-horas-title" class="modal-header-title">YYYY-MM-DD の記録</h2>
-                  <span class="modal-badge-law">労働基準法 +25%</span>
+                <div class="modal-header-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <h2 id="modal-horas-title" class="modal-header-title">YYYY-MM-DD の記録</h2>
+                    <span class="modal-badge-law">労働基準法 +25%</span>
+                  </div>
+                  <button type="button" id="modal-btn-aplicar-padrao" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="Recarregar horários padrão pré-determinados">
+                    <span>⏱️ Aplicar Padrão</span>
+                  </button>
                 </div>
                 <input type="hidden" id="modal-day" value="" />
 
@@ -798,7 +828,7 @@ export async function renderRegistroHoras(app) {
                 <div class="modal-form-grid-2">
                   <div class="modal-form-group">
                     <label for="modal-intervalo" class="modal-form-label">休憩時間 (Intervalo min)</label>
-                    <input type="number" id="modal-intervalo" class="modal-input" placeholder="60" min="0" step="5" />
+                    <input type="number" id="modal-intervalo" class="modal-input" placeholder="60" min="0" step="1" />
                   </div>
                   <div class="modal-form-group">
                     <label for="modal-total-preview" class="modal-form-label">実働時間 (Total Líquido)</label>
@@ -904,6 +934,22 @@ export async function renderRegistroHoras(app) {
                     <input type="number" id="calc-valor-hora" value="${valorHora}" step="0.01" class="calc-input" />
                   </div>
                 </div>
+                <div class="calc-item">
+                  <span class="calc-label" title="Horário padrão de entrada e saída para novos lançamentos">Horário Padrão</span>
+                  <div class="calc-input-wrap" style="display: flex; align-items: center; gap: 4px;">
+                    <input type="time" id="cfg-padrao-entrada" value="${horarioPadrao.entrada}" class="calc-input" style="width: 86px; padding: 0.35rem 0.25rem; font-size: var(--font-size-sm); text-align: center;" title="Entrada padrão (始業)" />
+                    <span style="color: var(--color-text-secondary); font-size: 0.8rem; font-weight: 600;">〜</span>
+                    <input type="time" id="cfg-padrao-saida" value="${horarioPadrao.saida}" class="calc-input" style="width: 86px; padding: 0.35rem 0.25rem; font-size: var(--font-size-sm); text-align: center;" title="Saída padrão (終業)" />
+                  </div>
+                </div>
+                <div class="calc-item">
+                  <span class="calc-label" title="Intervalo padrão personalizado em minutos">Intervalo Padrão</span>
+                  <div class="calc-input-wrap" style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="cfg-padrao-intervalo" value="${horarioPadrao.intervalo}" min="0" step="1" class="calc-input" style="width: 70px; padding: 0.35rem 0.4rem; font-size: var(--font-size-sm); text-align: center;" placeholder="60" title="Intervalo em minutos personalizado" />
+                    <span style="font-size: var(--font-size-xs); color: var(--color-text-secondary); font-weight: 500;">min</span>
+                    <span id="badge-padrao-salvo" style="display: none; font-size: 0.85rem; color: #22c55e; margin-left: 2px;" title="Salvo">✓</span>
+                  </div>
+                </div>
                 <div class="calc-item calc-item-accent">
                   <span class="calc-label">Subtotal bruto</span>
                   <span class="calc-value calc-bold" id="calc-subtotal">¥${Math.round(calcTotalsFromRecords().subtotalBruto).toLocaleString('ja-JP')}</span>
@@ -952,6 +998,28 @@ export async function renderRegistroHoras(app) {
       selectedMonth = parseInt(e.target.value);
       renderPage();
     });
+
+    // Auto-save do Horário Padrão e Intervalo Personalizado
+    function saveHorarioPadraoFromInputs() {
+      const ent = document.getElementById('cfg-padrao-entrada')?.value || '08:00';
+      const sai = document.getElementById('cfg-padrao-saida')?.value || '17:00';
+      const intRaw = parseInt(document.getElementById('cfg-padrao-intervalo')?.value, 10);
+      const intMin = isNaN(intRaw) ? 60 : Math.max(0, intRaw);
+
+      setHorarioPadrao({ entrada: ent, saida: sai, intervalo: intMin });
+
+      const badge = document.getElementById('badge-padrao-salvo');
+      if (badge) {
+        badge.style.display = 'inline';
+        setTimeout(() => {
+          if (badge) badge.style.display = 'none';
+        }, 1500);
+      }
+    }
+
+    document.getElementById('cfg-padrao-entrada')?.addEventListener('input', saveHorarioPadraoFromInputs);
+    document.getElementById('cfg-padrao-saida')?.addEventListener('input', saveHorarioPadraoFromInputs);
+    document.getElementById('cfg-padrao-intervalo')?.addEventListener('input', saveHorarioPadraoFromInputs);
 
     document.getElementById('btn-export-pdf-mes')?.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -1127,10 +1195,11 @@ export async function renderRegistroHoras(app) {
           updateModalCalculations(false);
         }
       } else {
-        // Valores padrão para novo registro
-        mEnt.value = '08:00';
-        mSai.value = '17:00';
-        mInt.value = '60';
+        // Valores padrão pré-determinados para novo registro
+        const padrao = getHorarioPadrao();
+        mEnt.value = padrao.entrada;
+        mSai.value = padrao.saida;
+        mInt.value = String(padrao.intervalo);
         mObs.value = '';
         mTipoCalculo.value = 'por_hora';
         mValorDiario.value = valorHora;
@@ -1141,6 +1210,14 @@ export async function renderRegistroHoras(app) {
 
       modal.style.display = 'flex';
     }
+
+    document.getElementById('modal-btn-aplicar-padrao')?.addEventListener('click', () => {
+      const padrao = getHorarioPadrao();
+      mEnt.value = padrao.entrada;
+      mSai.value = padrao.saida;
+      mInt.value = String(padrao.intervalo);
+      updateModalCalculations(true);
+    });
 
     document.getElementById('modal-btn-cancelar').addEventListener('click', () => {
       modal.style.display = 'none';
