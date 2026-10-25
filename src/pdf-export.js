@@ -105,7 +105,7 @@ export async function exportarMesPDF({ ano, mes, userId = null, perfil = null, r
         .eq('mes', mes);
       if (data) {
         data.forEach(r => {
-          const d = new Date(r.data).getDate();
+          const d = r.data ? parseInt(r.data.split('-')[2], 10) : new Date(r.data).getDate();
           mapRegistros[d] = r;
         });
       }

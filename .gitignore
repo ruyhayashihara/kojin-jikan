@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# Temporary database dumps and local recovery backups
+supabase/*.bin
+supabase/*.json
+supabase/backup_chrome_leveldb/
+supabase/meses_planilha/

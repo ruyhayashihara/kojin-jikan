@@ -194,7 +194,7 @@ export async function renderRegistroHoras(app) {
   if (navYear) { selectedYear = parseInt(navYear); sessionStorage.removeItem('keiro_nav_year'); }
 
   // State
-  const isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
+  let isGestor = sessionStorage.getItem('keiro_active_role') === 'gestor';
   let listaTrabalhadores = [];
   let selectedWorkerId = sessionStorage.getItem('keiro_gestor_selected_worker') || '';
   let selectedWorker = null;
@@ -235,6 +235,10 @@ export async function renderRegistroHoras(app) {
       if (data) {
         perfil = data;
         perfilValorHora = data.valor_hora_padrao || 0;
+        if (data.tipo_perfil) {
+          isGestor = (data.tipo_perfil === 'gestor');
+          sessionStorage.setItem('keiro_active_role', data.tipo_perfil);
+        }
       }
     } catch (e) { }
   }
@@ -248,7 +252,7 @@ export async function renderRegistroHoras(app) {
       const recs = await getRegistrosForWorkerMonth(selectedWorkerId, userId, selectedYear, selectedMonth, supabase);
       if (recs && recs.length > 0) {
         recs.forEach(r => {
-          const day = new Date(r.data).getDate();
+          const day = r.data ? parseInt(r.data.split('-')[2], 10) : new Date(r.data).getDate();
           registros[day] = r;
         });
         return;
@@ -270,7 +274,7 @@ export async function renderRegistroHoras(app) {
     const { data } = await query;
     if (data) {
       data.forEach(r => {
-        const day = new Date(r.data).getDate();
+        const day = r.data ? parseInt(r.data.split('-')[2], 10) : new Date(r.data).getDate();
         registros[day] = r;
       });
     }
@@ -671,8 +675,11 @@ export async function renderRegistroHoras(app) {
 
   // Full render
   async function renderPage() {
-    await loadTrabalhadoresGestor();
-    await Promise.all([loadPerfil(), loadRegistros(), loadDescontos()]);
+    await loadPerfil();
+    if (isGestor) {
+      await loadTrabalhadoresGestor();
+    }
+    await Promise.all([loadRegistros(), loadDescontos()]);
     await loadResumo();
 
     const yearOptions = [];
@@ -1193,7 +1200,6 @@ export async function renderRegistroHoras(app) {
         } else {
           const payload = {
             usuario_id: userId,
-            trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
             data: dateStr,
             hora_entrada: entrada || null,
             hora_saida: saida || null,
@@ -1205,6 +1211,9 @@ export async function renderRegistroHoras(app) {
             adicional_noturno: parseFloat(mAdicionalNoturno.value) || 0,
             adicional_fim_de_semana: parseFloat(mAdicionalFimSemana?.value) || 0,
           };
+          if (isGestor && selectedWorkerId) {
+            payload.trabalhador_id = selectedWorkerId;
+          }
 
           if (row?.id) {
             const { error: updateErr } = await supabase.from('registro_diario').update(payload).eq('id', row.id);
@@ -1212,7 +1221,6 @@ export async function renderRegistroHoras(app) {
               console.warn('Erro ao atualizar com colunas de adicionais, tentando payload básico:', updateErr.message);
               const basicPayload = {
                 usuario_id: userId,
-                trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
                 data: dateStr,
                 hora_entrada: entrada || null,
                 hora_saida: saida || null,
@@ -1221,7 +1229,15 @@ export async function renderRegistroHoras(app) {
                 tipo_calculo: tipoCalculo,
                 valor_diario: valorDiario,
               };
-              await supabase.from('registro_diario').update(basicPayload).eq('id', row.id);
+              if (isGestor && selectedWorkerId) {
+                basicPayload.trabalhador_id = selectedWorkerId;
+              }
+              const { error: basicErr } = await supabase.from('registro_diario').update(basicPayload).eq('id', row.id);
+              if (basicErr) {
+                console.error('Erro ao atualizar registro no Supabase:', basicErr);
+                alert('Erro ao atualizar no banco de dados: ' + (basicErr.message || updateErr.message));
+                return;
+              }
             }
             registros[day] = { ...row, ...payload };
           } else {
@@ -1230,7 +1246,6 @@ export async function renderRegistroHoras(app) {
               console.warn('Erro ao inserir com colunas de adicionais, tentando payload básico:', insertErr.message);
               const basicPayload = {
                 usuario_id: userId,
-                trabalhador_id: (isGestor && selectedWorkerId) ? selectedWorkerId : null,
                 data: dateStr,
                 hora_entrada: entrada || null,
                 hora_saida: saida || null,
@@ -1239,13 +1254,22 @@ export async function renderRegistroHoras(app) {
                 tipo_calculo: tipoCalculo,
                 valor_diario: valorDiario,
               };
+              if (isGestor && selectedWorkerId) {
+                basicPayload.trabalhador_id = selectedWorkerId;
+              }
               const resBasic = await supabase.from('registro_diario').insert(basicPayload).select().single();
+              if (resBasic.error) {
+                console.error('Erro ao inserir registro no Supabase:', resBasic.error);
+                alert('Erro ao salvar no banco de dados: ' + (resBasic.error.message || insertErr.message));
+                return;
+              }
               newRow = resBasic.data;
             }
             if (newRow) {
               registros[day] = { ...newRow, ...payload };
             } else {
-              registros[day] = payload;
+              alert('Erro inesperado: O registro não pôde ser gravado no banco de dados.');
+              return;
             }
           }
         }
