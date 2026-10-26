@@ -289,7 +289,7 @@ export async function renderLogin(app) {
     btnEnviarRecuperar.textContent = 'Enviando link...';
 
     try {
-      const redirectUrl = window.location.origin + window.location.pathname + '#/redefinir-senha';
+      const redirectUrl = window.location.origin + window.location.pathname;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
       });

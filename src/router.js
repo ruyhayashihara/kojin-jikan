@@ -22,21 +22,61 @@ export async function handleRoute() {
         currentCleanup = null;
     }
 
-    // Handle Supabase OAuth / Email Confirmation / Password Recovery redirects
-    // Supabase redirects to #access_token=...&refresh_token=... or #error=...
-    if (rawHash.startsWith('access_token=') || window.location.hash.includes('access_token=')) {
-        const isRecovery = window.location.hash.includes('type=recovery');
-        window.history.replaceState(null, '', window.location.pathname);
-        window.location.hash = isRecovery ? '/redefinir-senha' : '/dashboard';
-        return;
-    }
+    const rawHref = window.location.href;
 
-    if (window.location.hash.includes('error=') && (window.location.hash.includes('error_code=') || window.location.hash.includes('error_description='))) {
-        const errParams = new URLSearchParams(window.location.hash.substring(1));
-        const desc = errParams.get('error_description') || 'Link expirado ou inválido.';
+    // 1. Checa erros de autenticação retornados pelo Supabase (ex: link expirado / token inválido)
+    if (rawHref.includes('error=') && (rawHref.includes('error_code=') || rawHref.includes('error_description='))) {
+        const errMatch = rawHref.match(/error_description=([^&#]+)/) || rawHref.match(/error=([^&#]+)/);
+        const desc = errMatch ? decodeURIComponent(errMatch[1].replace(/\+/g, ' ')) : 'Link de recuperação expirado ou inválido.';
         window.history.replaceState(null, '', window.location.pathname);
         window.location.hash = `/redefinir-senha?error_description=${encodeURIComponent(desc)}`;
         return;
+    }
+
+    // 2. Checa se a URL contém tokens de autenticação (access_token e refresh_token)
+    const tokenMatch = rawHref.match(/access_token=([^&#]+)/);
+    const refreshMatch = rawHref.match(/refresh_token=([^&#]+)/);
+    const typeMatch = rawHref.match(/type=([^&#]+)/);
+
+    if (tokenMatch && refreshMatch) {
+        const accessToken = tokenMatch[1];
+        const refreshToken = refreshMatch[1];
+        const isRecovery = (typeMatch && typeMatch[1] === 'recovery') || rawHref.includes('type=recovery');
+
+        try {
+            const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            });
+            if (error) throw error;
+
+            // Limpa os tokens da URL após autenticar a sessão
+            window.history.replaceState(null, '', window.location.pathname);
+            window.location.hash = isRecovery ? '/redefinir-senha' : '/dashboard';
+            return;
+        } catch (err) {
+            console.error('Erro ao estabelecer sessão via tokens:', err);
+            window.history.replaceState(null, '', window.location.pathname);
+            window.location.hash = `/redefinir-senha?error_description=${encodeURIComponent(err.message || 'Falha ao autenticar token de recuperação.')}`;
+            return;
+        }
+    }
+
+    // 3. Suporte a PKCE (code na query string)
+    const codeMatch = window.location.search.match(/code=([^&#]+)/);
+    if (codeMatch) {
+        const code = codeMatch[1];
+        try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error && data?.session) {
+                const isRecovery = rawHref.includes('type=recovery');
+                window.history.replaceState(null, '', window.location.pathname);
+                window.location.hash = isRecovery ? '/redefinir-senha' : '/dashboard';
+                return;
+            }
+        } catch (err) {
+            console.warn('Erro ao trocar code por sessão:', err);
+        }
     }
 
     // Extrai o caminho base ignorando query strings (ex: #/cadastro?role=gestor -> /cadastro)

@@ -2,15 +2,13 @@ import { supabase } from '../supabaseClient.js';
 import { navigate } from '../router.js';
 
 export async function renderRedefinirSenha(app) {
-  // Verifica se há parâmetros de erro na URL retornados pelo Supabase (ex: link expirado)
-  const fullHash = window.location.hash;
-  const urlParams = new URLSearchParams(window.location.search || fullHash.split('?')[1] || '');
+  // 1. Verifica se há parâmetros de erro na URL retornados pelo Supabase (ex: link expirado)
+  const fullHref = window.location.href;
+  const hashPart = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+  const urlParams = new URLSearchParams(window.location.search || hashPart);
   const errorDescription = urlParams.get('error_description') || '';
 
-  // Verifica se o usuário possui uma sessão ativa (estabelecida pelo token de recuperação)
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session && !fullHash.includes('access_token')) {
+  if (errorDescription) {
     app.innerHTML = `
       <div class="auth-page">
         <div class="auth-container">
@@ -26,10 +24,47 @@ export async function renderRedefinirSenha(app) {
             <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⚠️</div>
             <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #f8fafc;">Link Expirado ou Inválido</h2>
             <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1.5rem; line-height: 1.5;">
-              ${errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : 'O link de recuperação que você acessou expirou ou já foi utilizado.'}
+              ${decodeURIComponent(errorDescription.replace(/\+/g, ' '))}
             </p>
             <a href="#/login" class="btn btn-primary btn-full" style="text-decoration: none;">
               Voltar ao Login e Solicitar Novo Link
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // 2. Verifica se o usuário possui sessão ativa ou token autenticado
+  let { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      session = { user };
+    }
+  }
+
+  if (!session) {
+    app.innerHTML = `
+      <div class="auth-page">
+        <div class="auth-container">
+          <div class="auth-header">
+            <div class="auth-logo">
+              <img src="/logo.png" alt="Logo" class="logo-icon" />
+              <h1>マイ個人</h1>
+            </div>
+            <p class="auth-subtitle">Recuperação de Acesso<br/><span class="jp-text">パスワード再設定</span></p>
+          </div>
+
+          <div class="card" style="text-align: center; padding: 2rem 1.5rem; background: #1e293b; border: 1px solid #334155; border-radius: 12px;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔑</div>
+            <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #f8fafc;">Acesso à Redefinição de Senha</h2>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 1.5rem; line-height: 1.5;">
+              Nenhum token de recuperação ativo foi detectado. Para alterar sua senha com segurança, utilize o link enviado ao seu e-mail ou solicite um novo link abaixo.
+            </p>
+            <a href="#/login" class="btn btn-primary btn-full" style="text-decoration: none;">
+              Voltar ao Login e Solicitar Link
             </a>
           </div>
         </div>
