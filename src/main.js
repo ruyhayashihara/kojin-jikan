@@ -12,10 +12,12 @@ import { renderHistorico } from './pages/historico.js';
 import { renderGestorDashboard } from './pages/gestor-dashboard.js';
 import { renderGestorTrabalhadores } from './pages/gestor-trabalhadores.js';
 import { renderAdminLicencas } from './pages/admin-licencas.js';
+import { renderRedefinirSenha } from './pages/redefinir-senha.js';
 
 // Registrar todas as rotas
 registerRoute('/login', renderLogin);
 registerRoute('/cadastro', renderCadastro);
+registerRoute('/redefinir-senha', renderRedefinirSenha);
 registerRoute('/dashboard', renderDashboard);
 registerRoute('/gestor-dashboard', renderGestorDashboard);
 registerRoute('/gestor-trabalhadores', renderGestorTrabalhadores);

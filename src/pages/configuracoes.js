@@ -118,6 +118,41 @@ export async function renderConfiguracoes(app) {
             </div>
           </form>
 
+          <!-- Seção de Segurança & Alteração de Senha -->
+          <div class="card" style="margin-top: 1.5rem;">
+            <div style="margin-bottom: 1.25rem;">
+              <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; color: #f8fafc; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🔒</span> Segurança & Alteração de Senha
+              </h3>
+              <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-secondary);">
+                Altere sua senha de acesso ao sistema a qualquer momento.
+              </p>
+            </div>
+
+            <form id="form-alterar-senha">
+              <div id="pwd-change-error" class="alert alert-error" style="display:none; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+              <div id="pwd-change-success" class="alert alert-success" style="display:none; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="cfg-nova-senha">Nova Senha</label>
+                  <input type="password" id="cfg-nova-senha" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg-confirmar-senha">Confirmar Nova Senha</label>
+                  <input type="password" id="cfg-confirmar-senha" placeholder="Repita a nova senha" minlength="6" autocomplete="new-password" required />
+                </div>
+              </div>
+
+              <div class="form-actions" style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary" id="btn-alterar-senha">
+                  Atualizar Senha
+                </button>
+              </div>
+            </form>
+          </div>
+
           <!-- Zona de Perigo / Excluir Cadastro -->
           <div class="card" style="margin-top: 2rem; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -204,6 +239,54 @@ export async function renderConfiguracoes(app) {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Salvar Configurações';
+    }
+  });
+
+  // Ação de Alteração de Senha
+  const formAlterarSenha = document.getElementById('form-alterar-senha');
+  const pwdError = document.getElementById('pwd-change-error');
+  const pwdSuccess = document.getElementById('pwd-change-success');
+  const btnAlterarSenha = document.getElementById('btn-alterar-senha');
+
+  formAlterarSenha?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const novaSenha = document.getElementById('cfg-nova-senha')?.value || '';
+    const confirmarSenha = document.getElementById('cfg-confirmar-senha')?.value || '';
+
+    pwdError.style.display = 'none';
+    pwdSuccess.style.display = 'none';
+
+    if (novaSenha.length < 6) {
+      pwdError.textContent = 'A nova senha deve ter no mínimo 6 caracteres.';
+      pwdError.style.display = 'block';
+      return;
+    }
+
+    if (novaSenha !== confirmarSenha) {
+      pwdError.textContent = 'As senhas digitadas não coincidem.';
+      pwdError.style.display = 'block';
+      return;
+    }
+
+    btnAlterarSenha.disabled = true;
+    btnAlterarSenha.textContent = 'Atualizando senha...';
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: novaSenha
+      });
+
+      if (error) throw error;
+
+      pwdSuccess.textContent = 'Senha alterada com sucesso!';
+      pwdSuccess.style.display = 'block';
+      formAlterarSenha.reset();
+    } catch (err) {
+      pwdError.textContent = err.message || 'Erro ao alterar a senha. Tente novamente.';
+      pwdError.style.display = 'block';
+    } finally {
+      btnAlterarSenha.disabled = false;
+      btnAlterarSenha.textContent = 'Atualizar Senha';
     }
   });
 

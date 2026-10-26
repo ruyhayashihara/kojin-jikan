@@ -51,7 +51,12 @@ export async function renderLogin(app) {
           </div>
 
           <div class="form-group">
-            <label for="login-password">Senha</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label for="login-password" style="margin-bottom: 0;">Senha</label>
+              <a href="javascript:void(0)" id="btn-abrir-recuperar" style="font-size: 0.8rem; color: #60a5fa; text-decoration: none; cursor: pointer; transition: color 0.2s;">
+                Esqueceu a senha?
+              </a>
+            </div>
             <input type="password" id="login-password" placeholder="Sua senha" required minlength="6" autocomplete="current-password" />
           </div>
 
@@ -63,6 +68,41 @@ export async function renderLogin(app) {
             Não tem conta? <a href="#/cadastro" id="link-create-account">Criar conta</a>
           </p>
         </form>
+
+        <!-- Modal de Recuperação de Senha -->
+        <div id="modal-recuperar-senha" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+          <div class="card" style="max-width: 420px; width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.75rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="margin: 0; font-size: 1.15rem; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                <span>🔑</span> Recuperar Senha
+              </h3>
+              <button type="button" id="btn-fechar-recuperar" style="background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.25rem; line-height: 1.45;">
+              Informe o e-mail cadastrado na sua conta. Enviaremos um link seguro para você redefinir sua senha.
+            </p>
+
+            <div id="recuperar-error" class="alert alert-error" style="display: none; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+            <div id="recuperar-success" class="alert alert-success" style="display: none; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+            <form id="form-recuperar-senha">
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label for="recuperar-email" style="font-size: 0.85rem; color: #cbd5e1;">E-mail Cadastrado</label>
+                <input type="email" id="recuperar-email" placeholder="seu@email.com" required autocomplete="email" style="width: 100%;" />
+              </div>
+
+              <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="btn-cancelar-recuperar" class="btn btn-outline" style="padding: 0.5rem 1rem;">
+                  Cancelar
+                </button>
+                <button type="submit" id="btn-enviar-recuperar" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                  Enviar Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -198,6 +238,82 @@ export async function renderLogin(app) {
       errorDiv.style.display = 'block';
       btn.disabled = false;
       btn.textContent = currentRole === 'gestor' ? 'Entrar no Painel do Gestor' : 'Entrar como Individual';
+    }
+  });
+
+  // Eventos do Modal de Recuperação de Senha
+  const modalRecuperar = document.getElementById('modal-recuperar-senha');
+  const btnAbrirRecuperar = document.getElementById('btn-abrir-recuperar');
+  const btnFecharRecuperar = document.getElementById('btn-fechar-recuperar');
+  const btnCancelarRecuperar = document.getElementById('btn-cancelar-recuperar');
+  const formRecuperar = document.getElementById('form-recuperar-senha');
+  const inputEmailRecuperar = document.getElementById('recuperar-email');
+  const errorRecuperar = document.getElementById('recuperar-error');
+  const successRecuperar = document.getElementById('recuperar-success');
+  const btnEnviarRecuperar = document.getElementById('btn-enviar-recuperar');
+
+  function abrirModalRecuperacao() {
+    if (modalRecuperar) {
+      modalRecuperar.style.display = 'flex';
+      errorRecuperar.style.display = 'none';
+      successRecuperar.style.display = 'none';
+      const emailAtual = document.getElementById('login-email')?.value?.trim();
+      if (emailAtual && inputEmailRecuperar) {
+        inputEmailRecuperar.value = emailAtual;
+      }
+      inputEmailRecuperar?.focus();
+    }
+  }
+
+  function fecharModalRecuperacao() {
+    if (modalRecuperar) {
+      modalRecuperar.style.display = 'none';
+    }
+  }
+
+  btnAbrirRecuperar?.addEventListener('click', abrirModalRecuperacao);
+  btnFecharRecuperar?.addEventListener('click', fecharModalRecuperacao);
+  btnCancelarRecuperar?.addEventListener('click', fecharModalRecuperacao);
+  modalRecuperar?.addEventListener('click', (e) => {
+    if (e.target === modalRecuperar) fecharModalRecuperacao();
+  });
+
+  formRecuperar?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = inputEmailRecuperar?.value?.trim();
+    if (!email) return;
+
+    errorRecuperar.style.display = 'none';
+    successRecuperar.style.display = 'none';
+    btnEnviarRecuperar.disabled = true;
+    btnEnviarRecuperar.textContent = 'Enviando link...';
+
+    try {
+      const redirectUrl = window.location.origin + window.location.pathname + '#/redefinir-senha';
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) throw error;
+
+      successRecuperar.innerHTML = `<strong>E-mail enviado com sucesso!</strong><br/>Enviamos o link de recuperação para <em>${email}</em>. Verifique sua caixa de entrada e pasta de spam.`;
+      successRecuperar.style.display = 'block';
+      formRecuperar.reset();
+
+      setTimeout(() => {
+        fecharModalRecuperacao();
+      }, 5000);
+    } catch (err) {
+      let msg = err.message || 'Erro ao solicitar recuperação de senha.';
+      const lower = (msg || '').toLowerCase();
+      if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit') || err.status === 429) {
+        msg = 'Muitas solicitações recentes. Por favor, aguarde alguns instantes antes de tentar novamente.';
+      }
+      errorRecuperar.textContent = msg;
+      errorRecuperar.style.display = 'block';
+    } finally {
+      btnEnviarRecuperar.disabled = false;
+      btnEnviarRecuperar.textContent = 'Enviar Link';
     }
   });
 }
