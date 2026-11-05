@@ -522,12 +522,92 @@ export async function renderGestorTrabalhadores(app) {
                 <div id="container-licencas-adicionadas"></div>
               </div>
 
-              <!-- SEÇÃO 5: Contrato & Remuneração -->
+              <!-- SEÇÃO 5: Histórico Escolar (学歴 - Opcional) -->
+              <div class="rirekisho-card">
+                <div class="rirekisho-card-header">
+                  <h2 class="rirekisho-card-title">
+                    <span>🎓</span>
+                    <span>5. Histórico Escolar & Acadêmico</span>
+                    <span class="rirekisho-card-subtitle">(学歴 — Opcional)</span>
+                  </h2>
+                  <span class="rirekisho-pill" style="background: rgba(147, 51, 234, 0.15); color: #c084fc;">Currículo JIS</span>
+                </div>
+
+                <p style="font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 0.85rem;">
+                  Adicione apenas as instituições e formações reais do trabalhador. Se nenhum registro for adicionado, a seção de escolaridade será impressa totalmente em branco na folha.
+                </p>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--color-border); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+                  <div class="form-grid-3" style="align-items: flex-end; gap: 0.75rem;">
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-escolar-ano" style="font-size: 0.75rem;">Ano (年) - Ex: 2018</label>
+                      <input type="number" id="input-escolar-ano" placeholder="Ex: 2018" min="1950" max="2100" />
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-escolar-mes" style="font-size: 0.75rem;">Mês (月) - Ex: 3 ou 4</label>
+                      <input type="number" id="input-escolar-mes" placeholder="Ex: 3" min="1" max="12" />
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-escolar-texto" style="font-size: 0.75rem;">Instituição / Formação (学校名・学部・卒業等)</label>
+                      <input type="text" id="input-escolar-texto" placeholder="Ex: 高等学校 卒業 ou Ensino Médio Completo" />
+                    </div>
+                  </div>
+                  <div style="margin-top: 0.65rem; text-align: right;">
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-adicionar-escolar" style="display: inline-flex; align-items: center; gap: 0.35rem; color: #a855f7; border-color: #a855f7;">
+                      <span>+ Adicionar Formação Escolar (学歴追加)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div id="container-historico-escolar"></div>
+              </div>
+
+              <!-- SEÇÃO 6: Histórico Profissional Anterior (職歴 - Opcional) -->
+              <div class="rirekisho-card">
+                <div class="rirekisho-card-header">
+                  <h2 class="rirekisho-card-title">
+                    <span>🏢</span>
+                    <span>6. Histórico Profissional Anterior</span>
+                    <span class="rirekisho-card-subtitle">(職歴 — Opcional)</span>
+                  </h2>
+                  <span class="rirekisho-pill" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;">Experiências</span>
+                </div>
+
+                <p style="font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 0.85rem;">
+                  Adicione as empresas anteriores e cargos reais do trabalhador. Se nada for adicionado, a seção de histórico profissional será impressa em branco.
+                </p>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--color-border); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+                  <div class="form-grid-3" style="align-items: flex-end; gap: 0.75rem;">
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-profissional-ano" style="font-size: 0.75rem;">Ano (年) - Ex: 2020</label>
+                      <input type="number" id="input-profissional-ano" placeholder="Ex: 2020" min="1950" max="2100" />
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-profissional-mes" style="font-size: 0.75rem;">Mês (月) - Ex: 4</label>
+                      <input type="number" id="input-profissional-mes" placeholder="Ex: 4" min="1" max="12" />
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                      <label for="input-profissional-texto" style="font-size: 0.75rem;">Empresa / Cargo / Evento (会社名・業務内容・入退社)</label>
+                      <input type="text" id="input-profissional-texto" placeholder="Ex: 株式会社〇〇 入社 ou Montador Automotivo" />
+                    </div>
+                  </div>
+                  <div style="margin-top: 0.65rem; text-align: right;">
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-adicionar-profissional" style="display: inline-flex; align-items: center; gap: 0.35rem; color: #0284c7; border-color: #0284c7;">
+                      <span>+ Adicionar Histórico Profissional (職歴追加)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div id="container-historico-profissional"></div>
+              </div>
+
+              <!-- SEÇÃO 7: Contrato & Remuneração -->
               <div class="rirekisho-card">
                 <div class="rirekisho-card-header">
                   <h2 class="rirekisho-card-title">
                     <span>💼</span>
-                    <span>5. Contrato & Remuneração</span>
+                    <span>7. Contrato & Remuneração</span>
                     <span class="rirekisho-card-subtitle">(雇用形態・給与条件)</span>
                   </h2>
                   <span class="rirekisho-pill">Trabalhista</span>
@@ -580,12 +660,12 @@ export async function renderGestorTrabalhadores(app) {
                 </div>
               </div>
 
-              <!-- SEÇÃO 6: Conta Bancária no Japão -->
+              <!-- SEÇÃO 8: Conta Bancária no Japão -->
               <div class="rirekisho-card">
                 <div class="rirekisho-card-header">
                   <h2 class="rirekisho-card-title">
                     <span>🏦</span>
-                    <span>6. Conta Bancária para Pagamento</span>
+                    <span>8. Conta Bancária para Pagamento</span>
                     <span class="rirekisho-card-subtitle">(給与振込先口座情報)</span>
                   </h2>
                   <span class="rirekisho-pill">Financeiro</span>
@@ -621,12 +701,12 @@ export async function renderGestorTrabalhadores(app) {
                 </div>
               </div>
 
-              <!-- SEÇÃO 7: Contato de Emergência -->
+              <!-- SEÇÃO 9: Contato de Emergência -->
               <div class="rirekisho-card">
                 <div class="rirekisho-card-header">
                   <h2 class="rirekisho-card-title">
                     <span>🚨</span>
-                    <span>7. Contato de Emergência no Japão & Observações</span>
+                    <span>9. Contato de Emergência no Japão & Observações</span>
                     <span class="rirekisho-card-subtitle">(緊急連絡先・特記事項)</span>
                   </h2>
                   <span class="rirekisho-pill">Segurança</span>
@@ -759,6 +839,17 @@ export async function renderGestorTrabalhadores(app) {
                       <option value="nao">Não (無)</option>
                       <option value="sim">Sim (有)</option>
                     </select>
+                  </div>
+                </div>
+
+                <!-- Painel Informativo de Dados Reais de Histórico Escolar & Profissional -->
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem;">
+                  <div style="font-size: 0.78rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.35rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Histórico Escolar & Profissional na Página 1 (学歴・職歴)</span>
+                    <span style="font-size: 0.72rem; color: #a855f7; font-weight: normal;">Padrão JIS</span>
+                  </div>
+                  <div id="modal-rir-historico-preview" style="font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.45;">
+                    <!-- Preenchido dinamicamente via JS com base nos dados individuais reais -->
                   </div>
                 </div>
 
@@ -970,6 +1061,133 @@ export async function renderGestorTrabalhadores(app) {
     `).join('');
   }
 
+  // --- GERENCIADOR DE HISTÓRICO ESCOLAR (学歴) E PROFISSIONAL (職歴) ---
+  let trabalhadorHistoricoEscolar = [];
+  let trabalhadorHistoricoProfissional = [];
+
+  const containerEscolar = document.getElementById('container-historico-escolar');
+  const containerProfissional = document.getElementById('container-historico-profissional');
+  const btnAddEscolar = document.getElementById('btn-adicionar-escolar');
+  const btnAddProfissional = document.getElementById('btn-adicionar-profissional');
+
+  function renderHistoricoEscolar() {
+    if (!containerEscolar) return;
+    if (trabalhadorHistoricoEscolar.length === 0) {
+      containerEscolar.innerHTML = `
+        <div style="text-align: center; padding: 0.85rem; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; color: var(--color-text-secondary); font-size: 0.82rem;">
+          Nenhum histórico escolar cadastrado. <em>(A seção permanecerá em branco na impressão da 履歴書)</em>
+        </div>
+      `;
+      return;
+    }
+
+    containerEscolar.innerHTML = trabalhadorHistoricoEscolar.map((item, idx) => `
+      <div class="historico-item-card" data-idx="${idx}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.85rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; flex: 1;">
+          <span style="font-family: monospace; font-weight: 700; color: #c084fc; font-size: 0.85rem;">
+            ${item.ano ? escapeHtml(String(item.ano)) + '年' : ''} ${item.mes ? escapeHtml(String(item.mes)) + '月' : ''}
+          </span>
+          <span style="color: var(--color-text); font-weight: 500; font-size: 0.85rem;">${escapeHtml(item.texto || '')}</span>
+        </div>
+        <button type="button" class="btn-remove-escolar" data-idx="${idx}" style="background: none; border: none; color: #ef4444; font-size: 0.8rem; cursor: pointer; padding: 2px 6px;">
+          ✕ Excluir
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function renderHistoricoProfissional() {
+    if (!containerProfissional) return;
+    if (trabalhadorHistoricoProfissional.length === 0) {
+      containerProfissional.innerHTML = `
+        <div style="text-align: center; padding: 0.85rem; background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 8px; color: var(--color-text-secondary); font-size: 0.82rem;">
+          Nenhum histórico profissional cadastrado. <em>(A seção permanecerá em branco na impressão da 履歴書)</em>
+        </div>
+      `;
+      return;
+    }
+
+    containerProfissional.innerHTML = trabalhadorHistoricoProfissional.map((item, idx) => `
+      <div class="historico-item-card" data-idx="${idx}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.85rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; flex: 1;">
+          <span style="font-family: monospace; font-weight: 700; color: #38bdf8; font-size: 0.85rem;">
+            ${item.ano ? escapeHtml(String(item.ano)) + '年' : ''} ${item.mes ? escapeHtml(String(item.mes)) + '月' : ''}
+          </span>
+          <span style="color: var(--color-text); font-weight: 500; font-size: 0.85rem;">${escapeHtml(item.texto || '')}</span>
+        </div>
+        <button type="button" class="btn-remove-profissional" data-idx="${idx}" style="background: none; border: none; color: #ef4444; font-size: 0.8rem; cursor: pointer; padding: 2px 6px;">
+          ✕ Excluir
+        </button>
+      </div>
+    `).join('');
+  }
+
+  // Eventos de adição e remoção de histórico escolar
+  btnAddEscolar?.addEventListener('click', () => {
+    const ano = document.getElementById('input-escolar-ano')?.value?.trim();
+    const mes = document.getElementById('input-escolar-mes')?.value?.trim();
+    const texto = document.getElementById('input-escolar-texto')?.value?.trim();
+
+    if (!texto && !ano) {
+      alert('Por favor, informe ao menos o Ano ou a Instituição/Formação Escolar.');
+      return;
+    }
+
+    trabalhadorHistoricoEscolar.push({ ano, mes, texto });
+    renderHistoricoEscolar();
+
+    const inAno = document.getElementById('input-escolar-ano');
+    const inMes = document.getElementById('input-escolar-mes');
+    const inTxt = document.getElementById('input-escolar-texto');
+    if (inAno) inAno.value = '';
+    if (inMes) inMes.value = '';
+    if (inTxt) inTxt.value = '';
+  });
+
+  containerEscolar?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-remove-escolar');
+    if (btn) {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (!isNaN(idx)) {
+        trabalhadorHistoricoEscolar.splice(idx, 1);
+        renderHistoricoEscolar();
+      }
+    }
+  });
+
+  // Eventos de adição e remoção de histórico profissional
+  btnAddProfissional?.addEventListener('click', () => {
+    const ano = document.getElementById('input-profissional-ano')?.value?.trim();
+    const mes = document.getElementById('input-profissional-mes')?.value?.trim();
+    const texto = document.getElementById('input-profissional-texto')?.value?.trim();
+
+    if (!texto && !ano) {
+      alert('Por favor, informe ao menos o Ano ou a Empresa/Cargo.');
+      return;
+    }
+
+    trabalhadorHistoricoProfissional.push({ ano, mes, texto });
+    renderHistoricoProfissional();
+
+    const inAno = document.getElementById('input-profissional-ano');
+    const inMes = document.getElementById('input-profissional-mes');
+    const inTxt = document.getElementById('input-profissional-texto');
+    if (inAno) inAno.value = '';
+    if (inMes) inMes.value = '';
+    if (inTxt) inTxt.value = '';
+  });
+
+  containerProfissional?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-remove-profissional');
+    if (btn) {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (!isNaN(idx)) {
+        trabalhadorHistoricoProfissional.splice(idx, 1);
+        renderHistoricoProfissional();
+      }
+    }
+  });
+
   // Limpa rigorosamente todos os campos do formulário para um novo cadastro
   function limparFormularioTrabalhador() {
     if (form) form.reset();
@@ -1040,6 +1258,12 @@ export async function renderGestorTrabalhadores(app) {
 
     trabalhadorLicencas = [];
     renderLicencasAdicionadas();
+
+    trabalhadorHistoricoEscolar = [];
+    renderHistoricoEscolar();
+
+    trabalhadorHistoricoProfissional = [];
+    renderHistoricoProfissional();
   }
 
   // Alterna para visualização do formulário
@@ -1112,6 +1336,16 @@ export async function renderGestorTrabalhadores(app) {
         : [];
       renderLicencasAdicionadas();
 
+      trabalhadorHistoricoEscolar = Array.isArray(worker.historico_escolar)
+        ? JSON.parse(JSON.stringify(worker.historico_escolar))
+        : [];
+      renderHistoricoEscolar();
+
+      trabalhadorHistoricoProfissional = Array.isArray(worker.historico_profissional)
+        ? JSON.parse(JSON.stringify(worker.historico_profissional))
+        : [];
+      renderHistoricoProfissional();
+
     } else {
       formTitle.textContent = 'Cadastrar Novo Trabalhador (履歴書)';
       formBadge.textContent = '新規登録';
@@ -1120,6 +1354,11 @@ export async function renderGestorTrabalhadores(app) {
 
       if (btnDelTopo) btnDelTopo.style.display = 'none';
       if (btnDelBottom) btnDelBottom.style.display = 'none';
+
+      trabalhadorHistoricoEscolar = [];
+      renderHistoricoEscolar();
+      trabalhadorHistoricoProfissional = [];
+      renderHistoricoProfissional();
 
       // Garante que o URL não retenha parâmetros de edição
       window.history.replaceState(null, '', '#/gestor-trabalhadores');
@@ -1455,7 +1694,9 @@ export async function renderGestorTrabalhadores(app) {
       contato_emergencia_parentesco: document.getElementById('trab-emergencia-parentesco')?.value?.trim() || '',
       contato_emergencia_telefone: document.getElementById('trab-emergencia-telefone')?.value?.trim() || '',
       observacoes: document.getElementById('trab-observacoes')?.value?.trim() || '',
-      qualificacoes_licencas: Array.isArray(trabalhadorLicencas) ? [...trabalhadorLicencas] : []
+      qualificacoes_licencas: Array.isArray(trabalhadorLicencas) ? [...trabalhadorLicencas] : [],
+      historico_escolar: Array.isArray(trabalhadorHistoricoEscolar) ? [...trabalhadorHistoricoEscolar] : [],
+      historico_profissional: Array.isArray(trabalhadorHistoricoProfissional) ? [...trabalhadorHistoricoProfissional] : []
     };
   }
 
@@ -1490,6 +1731,30 @@ export async function renderGestorTrabalhadores(app) {
     modalRirDependentes.value = temConj ? '1' : '0';
     modalRirConjuge.value = temConj ? 'sim' : 'nao';
     if (modalRirObrigacao) modalRirObrigacao.value = temConj ? 'sim' : 'nao';
+
+    const previewHistorico = document.getElementById('modal-rir-historico-preview');
+    if (previewHistorico) {
+      const escolares = Array.isArray(worker.historico_escolar) ? worker.historico_escolar : [];
+      const profissionais = Array.isArray(worker.historico_profissional) ? worker.historico_profissional : [];
+
+      if (escolares.length === 0 && profissionais.length === 0) {
+        previewHistorico.innerHTML = `
+          <div style="color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;">
+            <span>ℹ️</span>
+            <span>Nenhum histórico escolar ou profissional cadastrado. <strong>As 15 linhas serão impressas limpas/em branco</strong> (nenhum dado fictício é inserido).</span>
+          </div>
+        `;
+      } else {
+        const partes = [];
+        if (escolares.length > 0) partes.push(`<strong>${escolares.length}</strong> escolar(es)`);
+        if (profissionais.length > 0) partes.push(`<strong>${profissionais.length}</strong> profissional(is)`);
+        previewHistorico.innerHTML = `
+          <div style="color: #38bdf8;">
+            ✓ Dados reais que serão impressos na tabela: ${partes.join(' e ')}.
+          </div>
+        `;
+      }
+    }
   }
 
   function abrirModalRirekisho(worker) {
@@ -1590,7 +1855,9 @@ export async function renderGestorTrabalhadores(app) {
       tempoComutacaoMin: modalRirComutacaoM?.value || '45',
       dependentes: modalRirDependentes?.value || '0',
       temConjuge: isTemConjuge,
-      obrigacaoConjuge: isObrigacao
+      obrigacaoConjuge: isObrigacao,
+      historicoEscolar: Array.isArray(activeRirekishoWorker.historico_escolar) ? [...activeRirekishoWorker.historico_escolar] : [],
+      historicoProfissional: Array.isArray(activeRirekishoWorker.historico_profissional) ? [...activeRirekishoWorker.historico_profissional] : []
     };
 
     const workerParaExportar = {
@@ -1675,30 +1942,52 @@ export async function renderGestorTrabalhadores(app) {
       contato_emergencia_parentesco: document.getElementById('trab-emergencia-parentesco').value.trim() || null,
       contato_emergencia_telefone: document.getElementById('trab-emergencia-telefone').value.trim() || null,
       observacoes: document.getElementById('trab-observacoes').value.trim() || null,
-      qualificacoes_licencas: trabalhadorLicencas
+      qualificacoes_licencas: Array.isArray(trabalhadorLicencas) ? [...trabalhadorLicencas] : [],
+      historico_escolar: Array.isArray(trabalhadorHistoricoEscolar) ? [...trabalhadorHistoricoEscolar] : [],
+      historico_profissional: Array.isArray(trabalhadorHistoricoProfissional) ? [...trabalhadorHistoricoProfissional] : []
     };
 
     try {
       let savedWorker = null;
+      let remotePayload = { ...payload };
+
       if (id) {
         // Atualização no Supabase
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('trabalhador')
-          .update(payload)
+          .update(remotePayload)
           .eq('id', id)
           .select()
           .maybeSingle();
+
+        if (error && (error.code === 'PGRST204' || (error.message && error.message.includes('historico_')))) {
+          delete remotePayload.historico_escolar;
+          delete remotePayload.historico_profissional;
+          const retry = await supabase.from('trabalhador').update(remotePayload).eq('id', id).select().maybeSingle();
+          data = retry.data;
+          error = retry.error;
+        }
+
         if (error) throw error;
-        savedWorker = data || { ...payload, id };
+        savedWorker = { ...payload, id };
       } else {
         // Criação no Supabase
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('trabalhador')
-          .insert(payload)
+          .insert(remotePayload)
           .select()
           .maybeSingle();
+
+        if (error && (error.code === 'PGRST204' || (error.message && error.message.includes('historico_')))) {
+          delete remotePayload.historico_escolar;
+          delete remotePayload.historico_profissional;
+          const retry = await supabase.from('trabalhador').insert(remotePayload).select().maybeSingle();
+          data = retry.data;
+          error = retry.error;
+        }
+
         if (error) throw error;
-        savedWorker = data || { ...payload, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `worker_${Date.now()}` };
+        savedWorker = data ? { ...payload, id: data.id } : { ...payload, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `worker_${Date.now()}` };
       }
 
       // Sincroniza SEMPRE no cache local para resposta e renderização instantânea

@@ -162,76 +162,52 @@ export function parseDateJP(dateStr) {
 
 /**
  * Gera linhas do Histórico Escolar (学歴) formatadas no padrão de 履歴書
+ * Puxa estritamente dados reais cadastrados. Se nada foi cadastrado, retorna vazio ([]).
  */
-export function gerarHistoricoEscolar(dataNasc) {
-  const { ano } = parseDateJP(dataNasc);
-  if (!ano) {
-    return [
-      { ano: '', mes: '', texto: '高等学校 卒業' }
-    ];
+export function gerarHistoricoEscolar(worker) {
+  let lista = [];
+  if (worker && typeof worker === 'object') {
+    if (Array.isArray(worker.historico_escolar)) {
+      lista = worker.historico_escolar;
+    } else if (Array.isArray(worker)) {
+      lista = worker;
+    }
   }
 
-  // Idade padrão: Ensino Fundamental aos 15, Médio aos 18
-  const anoEnsinoMedioInicio = ano + 15;
-  const anoEnsinoMedioFim = ano + 18;
+  if (!Array.isArray(lista) || lista.length === 0) {
+    return [];
+  }
 
-  return [
-    { ano: anoEnsinoMedioInicio, mes: 4, texto: '中等教育（高校） 入学' },
-    { ano: anoEnsinoMedioFim, mes: 3, texto: '中等教育（高校） 卒業' }
-  ];
+  return lista.map(item => ({
+    ano: item.ano || '',
+    mes: item.mes || '',
+    texto: (item.texto || item.escola || '').trim()
+  })).filter(item => item.texto || item.ano);
 }
 
 /**
  * Gera linhas do Histórico Profissional (職歴) formatadas no padrão JIS
+ * Puxa estritamente dados reais cadastrados. Se nada foi cadastrado, retorna vazio ([]).
  */
 export function gerarHistoricoProfissional(worker) {
-  const rows = [];
-  const admissao = parseDateJP(worker.data_admissao);
-  const cargoJa = traduzirCargo(worker.cargo_funcao);
-
-  // Histórico anterior genérico caso o trabalhador tenha mais de 25 anos
-  const { ano: anoNasc, idade } = parseDateJP(worker.data_nascimento);
-  if (idade && idade >= 26) {
-    const anoAnterior = (admissao.ano ? admissao.ano - 4 : (anoNasc ? anoNasc + 20 : 2018));
-    const anoAnteriorFim = anoAnterior + 3;
-    rows.push({
-      ano: anoAnterior,
-      mes: 4,
-      texto: '株式会社 日本製造工業 入社（製造・組立業務に従事）'
-    });
-    rows.push({
-      ano: anoAnteriorFim,
-      mes: 3,
-      texto: '一身上の都合により退職'
-    });
+  let lista = [];
+  if (worker && typeof worker === 'object') {
+    if (Array.isArray(worker.historico_profissional)) {
+      lista = worker.historico_profissional;
+    } else if (Array.isArray(worker)) {
+      lista = worker;
+    }
   }
 
-  // Trabalho Atual
-  if (admissao.ano) {
-    rows.push({
-      ano: admissao.ano,
-      mes: admissao.mes,
-      texto: `現職企業 入社（${cargoJa}として勤務）`
-    });
-    rows.push({
-      ano: '',
-      mes: '',
-      texto: '現在に至る'
-    });
-  } else {
-    rows.push({
-      ano: 2023,
-      mes: 4,
-      texto: `製造現場 入社（${cargoJa}）`
-    });
-    rows.push({
-      ano: '',
-      mes: '',
-      texto: '現在に至る'
-    });
+  if (!Array.isArray(lista) || lista.length === 0) {
+    return [];
   }
 
-  return rows;
+  return lista.map(item => ({
+    ano: item.ano || '',
+    mes: item.mes || '',
+    texto: (item.texto || item.empresa || '').trim()
+  })).filter(item => item.texto || item.ano);
 }
 
 /**
@@ -337,9 +313,13 @@ export function prepararDadosRirekisho(worker, options = {}) {
   const enderecoLinha1 = `${prov} ${worker.cidade_bairro || ''}`.trim();
   const enderecoLinha2 = `${worker.endereco_numero || ''}`.trim();
 
-  // Históricos
-  const historicoEscolar = gerarHistoricoEscolar(worker.data_nascimento);
-  const historicoProfissional = gerarHistoricoProfissional(worker);
+  // Históricos - puxa estritamente dados reais cadastrados ou opções passadas
+  const historicoEscolar = options.historicoEscolar !== undefined
+    ? options.historicoEscolar
+    : gerarHistoricoEscolar(worker);
+  const historicoProfissional = options.historicoProfissional !== undefined
+    ? options.historicoProfissional
+    : gerarHistoricoProfissional(worker);
   const qualificacoes = formatarLicencasRirekisho(worker.qualificacoes_licencas || []);
 
   // Cônjuge e Dependentes

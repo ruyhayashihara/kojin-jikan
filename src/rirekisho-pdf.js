@@ -9,24 +9,34 @@ export function gerarHTMLRirekisho(dados) {
   const maxLinhasPagina2Topo = 7;
   const maxLinhasPagina2Licencas = 7;
 
-  // Monta as linhas de 学歴・職歴 para a Página 1
+  // Monta as linhas de 学歴・職歴 para a Página 1 (Padrão Oficial JIS)
+  // SE NADA FOI CADASTRADO: NADA DEVE SER EXIBIDO (as 15 linhas permanecem vazias)
   const linhasHistoricoP1 = [];
-  linhasHistoricoP1.push({ ano: '', mes: '', texto: '学　歴', isCenter: true });
+  const temEscolar = Array.isArray(dados.historicoEscolar) && dados.historicoEscolar.length > 0;
+  const temProfissional = Array.isArray(dados.historicoProfissional) && dados.historicoProfissional.length > 0;
 
-  (dados.historicoEscolar || []).forEach(h => {
-    linhasHistoricoP1.push({ ano: h.ano || '', mes: h.mes || '', texto: h.texto || '', isCenter: false });
-  });
+  if (temEscolar) {
+    linhasHistoricoP1.push({ ano: '', mes: '', texto: '学　歴', isCenter: true });
+    dados.historicoEscolar.forEach(h => {
+      linhasHistoricoP1.push({ ano: h.ano || '', mes: h.mes || '', texto: h.texto || '', isCenter: false });
+    });
+  }
 
-  linhasHistoricoP1.push({ ano: '', mes: '', texto: '', isCenter: false }); // Linha em branco separadora
-  linhasHistoricoP1.push({ ano: '', mes: '', texto: '職　歴', isCenter: true });
+  if (temProfissional) {
+    if (temEscolar) {
+      linhasHistoricoP1.push({ ano: '', mes: '', texto: '', isCenter: false }); // Linha em branco separadora
+    }
+    linhasHistoricoP1.push({ ano: '', mes: '', texto: '職　歴', isCenter: true });
+    dados.historicoProfissional.forEach(h => {
+      linhasHistoricoP1.push({ ano: h.ano || '', mes: h.mes || '', texto: h.texto || '', isCenter: false });
+    });
+  }
 
-  (dados.historicoProfissional || []).forEach(h => {
-    linhasHistoricoP1.push({ ano: h.ano || '', mes: h.mes || '', texto: h.texto || '', isCenter: false });
-  });
+  if (temEscolar || temProfissional) {
+    linhasHistoricoP1.push({ ano: '', mes: '', texto: '以　上', isRight: true });
+  }
 
-  linhasHistoricoP1.push({ ano: '', mes: '', texto: '以　上', isRight: true });
-
-  // Preenche até 15 linhas
+  // Preenche até 15 linhas (vazias quando nada foi cadastrado)
   while (linhasHistoricoP1.length < maxLinhasPagina1) {
     linhasHistoricoP1.push({ ano: '', mes: '', texto: '', isCenter: false });
   }

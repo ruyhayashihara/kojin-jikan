@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS public.trabalhador (
   -- Licenças e Qualificações no Japão (免許・資格・特別教育)
   qualificacoes_licencas JSONB DEFAULT '[]'::jsonb,
 
+  -- Histórico Escolar e Profissional no Japão (学歴・職歴)
+  historico_escolar JSONB DEFAULT '[]'::jsonb,
+  historico_profissional JSONB DEFAULT '[]'::jsonb,
+
   -- Status e Controle
   observacoes TEXT,
   ativo BOOLEAN DEFAULT TRUE,
@@ -83,6 +87,10 @@ CREATE POLICY "Trabalhador visualiza próprio registro"
 -- Permissões para usuários autenticados
 GRANT ALL ON public.trabalhador TO authenticated;
 GRANT ALL ON public.trabalhador TO service_role;
+
+-- Garantir colunas de histórico escolar e profissional caso a tabela já exista
+ALTER TABLE public.trabalhador ADD COLUMN IF NOT EXISTS historico_escolar JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.trabalhador ADD COLUMN IF NOT EXISTS historico_profissional JSONB DEFAULT '[]'::jsonb;
 
 -- Recarregar cache de esquemas da API
 NOTIFY pgrst, 'reload schema';
