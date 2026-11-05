@@ -591,21 +591,11 @@ export function clearAllLocalUserData() {
   } catch (e) { }
 }
 
-// Expurgar ativamente quaisquer dados fictícios (Carlos Silva, mock-worker, etc) do navegador
+// Limpeza de chaves de testes obsoletas do passado sem apagar cadastros reais
 try {
   localStorage.removeItem('keiro_mock_trabalhadores');
   localStorage.removeItem('keiro_mock_registros');
   localStorage.removeItem('keiro_gestor_selected_worker');
-
-  // Varre chaves do localStorage para eliminar resíduos fictícios
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('keiro_trabalhadores_') || key.startsWith('keiro_registros_') || key.startsWith('keiro_mock_')) {
-      const val = localStorage.getItem(key);
-      if (val && (val.includes('Carlos Silva') || val.includes('mock-worker-') || val.includes('TR-001') || val.includes('Mariana Tanaka'))) {
-        localStorage.removeItem(key);
-      }
-    }
-  });
 } catch (e) { }
 
 /**
@@ -618,12 +608,7 @@ export function getStoredTrabalhadores(userId) {
     if (raw !== null && raw !== '') {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Elimina qualquer trabalhador fictício que possa ter sido armazenado anteriormente
-        const cleaned = parsed.filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
-        if (cleaned.length !== parsed.length) {
-          localStorage.setItem(key, JSON.stringify(cleaned));
-        }
-        return cleaned;
+        return parsed;
       }
     }
   } catch (e) { }
@@ -636,8 +621,7 @@ export function getStoredTrabalhadores(userId) {
 export function setStoredTrabalhadores(list, userId) {
   try {
     const key = getWorkerStorageKey(userId);
-    const cleaned = (list || []).filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
-    localStorage.setItem(key, JSON.stringify(cleaned));
+    localStorage.setItem(key, JSON.stringify(list || []));
   } catch (e) { }
 }
 
@@ -651,13 +635,7 @@ export function getStoredRegistros(userId) {
     if (raw !== null && raw !== '') {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        const cleaned = {};
-        Object.entries(parsed).forEach(([k, v]) => {
-          if (v && v.trabalhador_id && !v.trabalhador_id.startsWith('mock-worker-')) {
-            cleaned[k] = v;
-          }
-        });
-        return cleaned;
+        return parsed;
       }
     }
   } catch (e) { }
@@ -670,15 +648,7 @@ export function getStoredRegistros(userId) {
 export function setStoredRegistros(records, userId) {
   try {
     const key = getRecordStorageKey(userId);
-    const cleaned = {};
-    if (records && typeof records === 'object') {
-      Object.entries(records).forEach(([k, v]) => {
-        if (v && v.trabalhador_id && !v.trabalhador_id.startsWith('mock-worker-')) {
-          cleaned[k] = v;
-        }
-      });
-    }
-    localStorage.setItem(key, JSON.stringify(cleaned));
+    localStorage.setItem(key, JSON.stringify(records || {}));
   } catch (e) { }
 }
 
@@ -700,11 +670,10 @@ export async function loadOrInitTrabalhadores(userId, supabase) {
         .eq('gestor_id', userId)
         .order('codigo_trabalhador', { ascending: true });
 
-      // Se a consulta teve sucesso, filtra e salva no cache exclusivo deste usuário
+      // Se a consulta teve sucesso e retornou dados do banco
       if (!error && Array.isArray(data)) {
-        const cleaned = data.filter(t => t && !t.id?.startsWith('mock-worker-') && t.nome_alfabeto !== 'Carlos Silva');
-        setStoredTrabalhadores(cleaned, userId);
-        return { trabalhadores: cleaned, source: 'supabase' };
+        setStoredTrabalhadores(data, userId);
+        return { trabalhadores: data, source: 'supabase' };
       }
     }
   } catch (e) { }
@@ -715,7 +684,7 @@ export async function loadOrInitTrabalhadores(userId, supabase) {
     return { trabalhadores: cached, source: 'local' };
   }
 
-  // 3. Primeira execução para este novo usuário: inicializa lista vazia (SEM DADOS DE OUTRAS CONTAS)
+  // 3. Primeira execução para este novo usuário: inicializa lista vazia
   setStoredTrabalhadores([], userId);
   return { trabalhadores: [], source: 'local' };
 }

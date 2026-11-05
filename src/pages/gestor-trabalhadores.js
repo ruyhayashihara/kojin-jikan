@@ -326,8 +326,8 @@ export async function renderGestorTrabalhadores(app) {
 
                 <div class="form-grid-3" style="margin-bottom: 1rem;">
                   <div class="form-group">
-                    <label for="trab-codigo">ID do Trabalhador (Automático) *</label>
-                    <input type="text" id="trab-codigo" placeholder="0001" required readonly style="font-family: monospace; font-weight: 700; color: var(--color-primary); background: var(--color-bg); cursor: not-allowed;" title="ID gerado automaticamente em ordem sequencial (0001, 0002...)" />
+                    <label for="trab-codigo">ID do Trabalhador (Automático)</label>
+                    <input type="text" id="trab-codigo" placeholder="0001" readonly style="font-family: monospace; font-weight: 700; color: var(--color-primary); background: var(--color-bg); cursor: not-allowed;" title="ID gerado automaticamente em ordem sequencial (0001, 0002...)" />
                   </div>
                   <div class="form-group">
                     <label for="trab-nome-alfabeto">Nome Completo (Romaji / Passaporte) *</label>
@@ -564,10 +564,10 @@ export async function renderGestorTrabalhadores(app) {
                     </select>
                   </div>
                   <div class="form-group">
-                    <label for="trab-valor-base">Valor Base (¥) *</label>
+                    <label for="trab-valor-base">Valor Base (¥)</label>
                     <div class="input-addon-wrapper">
                       <span class="input-addon-prefix">¥</span>
-                      <input type="number" id="trab-valor-base" step="1" min="0" placeholder="1500" required style="font-weight: 700; color: var(--color-success);" />
+                      <input type="number" id="trab-valor-base" step="1" min="0" placeholder="0" style="font-weight: 700; color: var(--color-success);" />
                       <span class="input-addon-suffix" id="label-tipo-taxa">/hora</span>
                     </div>
                   </div>
@@ -1679,39 +1679,36 @@ export async function renderGestorTrabalhadores(app) {
     };
 
     try {
+      let savedWorker = null;
       if (id) {
         // Atualização no Supabase
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('trabalhador')
           .update(payload)
-          .eq('id', id);
+          .eq('id', id)
+          .select()
+          .maybeSingle();
         if (error) throw error;
+        savedWorker = data || { ...payload, id };
       } else {
         // Criação no Supabase
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('trabalhador')
-          .insert(payload);
+          .insert(payload)
+          .select()
+          .maybeSingle();
         if (error) throw error;
+        savedWorker = data || { ...payload, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `worker_${Date.now()}` };
       }
 
-      formSuccess.textContent = 'Ficha cadastral salva com sucesso!';
-      formSuccess.style.display = 'block';
-
-      setTimeout(() => {
-        closeFormView();
-        renderGestorTrabalhadores(app);
-      }, 700);
-
-    } catch (err) {
-      console.warn('Erro ao salvar trabalhador no Supabase, mantendo sincronizado localmente:', err);
-      // Fallback para cache local exclusivo deste gestor
-      let list = getStoredTrabalhadores(user.id) || trabalhadores;
+      // Sincroniza SEMPRE no cache local para resposta e renderização instantânea
+      let list = getStoredTrabalhadores(user.id) || trabalhadores || [];
       if (id) {
         const idx = list.findIndex(t => t.id === id);
-        if (idx !== -1) list[idx] = { ...list[idx], ...payload, id };
+        if (idx !== -1) list[idx] = { ...list[idx], ...savedWorker };
+        else list.push(savedWorker);
       } else {
-        const newObj = { ...payload, id: `mock-worker-${Date.now()}` };
-        list.push(newObj);
+        list.push(savedWorker);
       }
       setStoredTrabalhadores(list, user.id);
 
@@ -1721,7 +1718,31 @@ export async function renderGestorTrabalhadores(app) {
       setTimeout(() => {
         closeFormView();
         renderGestorTrabalhadores(app);
-      }, 700);
+      }, 500);
+
+    } catch (err) {
+      console.warn('Erro ao salvar trabalhador no Supabase, salvando em cache local:', err);
+      // Fallback resiliente para cache local exclusivo deste gestor
+      let list = getStoredTrabalhadores(user.id) || trabalhadores || [];
+      const workerId = id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `worker_${Date.now()}`);
+      const localWorker = { ...payload, id: workerId };
+
+      if (id) {
+        const idx = list.findIndex(t => t.id === id);
+        if (idx !== -1) list[idx] = { ...list[idx], ...localWorker };
+        else list.push(localWorker);
+      } else {
+        list.push(localWorker);
+      }
+      setStoredTrabalhadores(list, user.id);
+
+      formSuccess.textContent = 'Ficha cadastral salva com sucesso!';
+      formSuccess.style.display = 'block';
+
+      setTimeout(() => {
+        closeFormView();
+        renderGestorTrabalhadores(app);
+      }, 500);
     } finally {
       if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvar Ficha Cadastral'; }
       if (saveBtnTop) { saveBtnTop.disabled = false; saveBtnTop.textContent = 'Salvar Ficha Cadastral'; }
