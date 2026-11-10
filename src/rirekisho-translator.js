@@ -375,7 +375,7 @@ export async function traduzirComGemini(worker, apiKey = null) {
   const key = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
   if (!key) return null;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`;
   const prompt = `Você é um especialista em recrutamento corporativo e RH no Japão (採用担当・人事).
 Analise os dados deste trabalhador estrangeiro e gere o conteúdo em Japonês Polido formal (敬語・JIS規格 履歴書):
 
